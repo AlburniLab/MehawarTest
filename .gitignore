@@ -1,0 +1,39 @@
+# Unity 6 — verified against this project's actual root structure.
+
+# Unity generated (never versioned)
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]serSettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# IDE / OS
+/.vs/
+/.idea/
+/.vscode/
+.DS_Store
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Generated solution/project files (Unity regenerates them)
+*.csproj
+*.sln
+*.slnx
+*.unityproj
+*.svd
+*.pidb
+*.booproj
+ExportedObj/
+.consulo/
+
+# Crash reports
+sysinfo.txt
+crashlytics-build.properties
+
+# Claude Code local session settings (machine-local permissions)
+.claude/settings.local.json
