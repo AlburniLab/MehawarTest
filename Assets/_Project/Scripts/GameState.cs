@@ -18,6 +18,14 @@ namespace Mehawar.Greybox
         public static Campaign Campaign = Campaign.ViaOscura;
         public static int CurrentLevel = 1;
 
+        /// <summary>Interludes already shown this session (no disk persistence by design):
+        /// death, replay and re-completion never replay a seen beat.</summary>
+        public static readonly System.Collections.Generic.HashSet<string> SeenInterludes =
+            new System.Collections.Generic.HashSet<string>();
+
+        public static string InterludeKey(Campaign campaign, int completedLevel)
+            => campaign + ":" + completedLevel;
+
         public static string AvatarName => Campaign == Campaign.ViaOscura ? "Lucius" : "Cesare";
         public static string CampaignName => Campaign == Campaign.ViaOscura ? "Via Oscura" : "Via Romana";
     }

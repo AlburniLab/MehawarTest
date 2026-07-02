@@ -42,6 +42,7 @@ namespace Mehawar.Greybox
         private GameObject? _levelRoot;
         private PlayerInputHub? _playerInput;
         private PlayerControls? _activeControls;   // cached for pause-action unsubscribe
+        private InterludeScreen _interlude = null!;
         private LevelCatalog.LevelInfo? _currentInfo;
         private bool _debugRun;                    // out-of-sequence run: no "Prosegui"
 
@@ -60,6 +61,9 @@ namespace Mehawar.Greybox
             BuildCampaignSelect(canvas);
             BuildLevelComplete(canvas);
             BuildPauseMenu(canvas);
+            _interlude = new GameObject("InterludeScreen").AddComponent<InterludeScreen>();
+            _interlude.transform.SetParent(transform, false);
+            _interlude.Configure(canvas, _font);   // built last: renders above every panel
             ShowMainMenu();
         }
 
@@ -297,10 +301,41 @@ namespace Mehawar.Greybox
             CreateText(column, "Livello completato", 48, TitleColor, FontStyle.Bold);
             _completeSubtitle = CreateText(column, "", 24, TextColor, FontStyle.Normal);
             CreateSpacer(column, 20f);
-            _continueButton = CreateButton(column, "Prosegui", null,
-                () => StartLevel(GameState.Campaign, GameState.CurrentLevel + 1));
+            _continueButton = CreateButton(column, "Prosegui", null, ProceedToNextLevel);
             _replayButton = CreateButton(column, "Rigioca", null, ReplayCurrent);
-            CreateButton(column, "Torna al menu", null, ShowMainMenu);
+            CreateButton(column, "Torna al menu", null, CompleteToMenu);
+        }
+
+        // ------------------------------------------------------- interludes
+
+        /// <summary>"Prosegui": the beat plays AFTER the completion screen, BEFORE the next level.</summary>
+        private void ProceedToNextLevel()
+        {
+            Campaign campaign = GameState.Campaign;
+            int completed = GameState.CurrentLevel;
+            ShowInterludeThen(campaign, completed, () => StartLevel(campaign, completed + 1));
+        }
+
+        /// <summary>Completion-screen "Torna al menu": a campaign whose next level does not exist
+        /// yet still gets its beat (e.g. Via Oscura after Il Risveglio), then the menu.</summary>
+        private void CompleteToMenu()
+        {
+            ShowInterludeThen(GameState.Campaign, GameState.CurrentLevel, ShowMainMenu);
+        }
+
+        private void ShowInterludeThen(Campaign campaign, int completedLevel, System.Action continuation)
+        {
+            InterludeDefinition? def = _debugRun ? null : InterludeCatalog.AfterLevel(campaign, completedLevel);
+            string key = GameState.InterludeKey(campaign, completedLevel);
+            if (def == null || GameState.SeenInterludes.Contains(key))
+            {
+                continuation();
+                return;
+            }
+            GameState.SeenInterludes.Add(key);
+            _levelComplete.SetActive(false);
+            EventSystem.current.SetSelectedGameObject(null);
+            _interlude.Show(def, continuation);
         }
 
         // -------------------------------------------------------- UI elements
