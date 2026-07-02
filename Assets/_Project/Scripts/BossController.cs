@@ -15,10 +15,10 @@ namespace Mehawar.Greybox
     [RequireComponent(typeof(BoxCollider2D))]
     public sealed class BossController : TrainingDummy
     {
-        private enum BState { Dormant, Cooldown, Telegraph, Active, Recovery, Transition, Dead }
+        private enum BState { Dormant, Cooldown, Telegraph, Active, Recovery, Evade, Transition, Dead }
 
         /// <summary>Visual-state projection for the animation driver.</summary>
-        public enum BossAnim { Idle, Move, Telegraph, Strike, Recover, Transition, Dead }
+        public enum BossAnim { Idle, Move, Telegraph, Strike, Recover, Evade, Transition, Dead }
 
         [Header("Boss body — movement")]
         [Tooltip("Backstep speed when the player crowds it (anti-corner, phase-gated).")]
@@ -52,7 +52,10 @@ namespace Mehawar.Greybox
         private int _attackCursor;      // deterministic cycle inside the phase's attack list
         private int _chainLeft;
         private float _timer;
+        private float _stateMax;        // initial value of _timer (for elapsed-time checks)
         private float _backstepTimer;
+        private float _evadeCooldown;   // rate limit: no evade-kiting loops
+        private bool _counterArmed;     // next attack after an evade comes out FASTER
         private BossAttackDef? _attack;
         private float _currentTelegraph;
         private int _facing = -1;
@@ -84,11 +87,15 @@ namespace Mehawar.Greybox
                     case BState.Telegraph: return BossAnim.Telegraph;
                     case BState.Active: return BossAnim.Strike;
                     case BState.Recovery: return BossAnim.Recover;
+                    case BState.Evade: return BossAnim.Evade;
                     case BState.Cooldown: return _backstepTimer > 0f ? BossAnim.Move : BossAnim.Idle;
                     default: return BossAnim.Idle;
                 }
             }
         }
+
+        /// <summary>Duration of the current evade vault (visuals stretch to this).</summary>
+        public float EvadeDuration => _stateMax;
 
         /// <summary>Inject the boss data and arena bounds (called by the level builder).</summary>
         public void Configure(BossDefinition def, LayerMask playerMask, float arenaMinX, float arenaMaxX)
@@ -98,6 +105,14 @@ namespace Mehawar.Greybox
             _arenaMinX = arenaMinX;
             _arenaMaxX = arenaMaxX;
             SetMaxHealth(def.MaxHealth);
+
+            // Per-boss slash hitbox (Awake already built the child collider).
+            if (def.SlashHitboxSize != Vector2.zero)
+            {
+                slashHitboxSize = def.SlashHitboxSize;
+                slashHitboxOffset = def.SlashHitboxOffset;
+                _slashHitbox.size = slashHitboxSize;
+            }
         }
 
         /// <summary>Lazily resolved (and re-resolved after rebuilds): spawn order never matters.</summary>
@@ -136,7 +151,9 @@ namespace Mehawar.Greybox
             _slashHitbox = HitboxFactory.CreateChildTrigger(transform, "BossSlashHitbox", slashHitboxSize);
         }
 
-        /// <summary>Super-armor: damage always lands, knockback/stagger never do.</summary>
+        /// <summary>Gaull (SuperArmor): damage lands, stagger never does. Xardast family: a hit
+        /// during Telegraph or Cooldown INTERRUPTS her — but she escapes with a vault and her
+        /// counter comes out faster. Recovery is the honest damage window for both archetypes.</summary>
         public override HitResult TakeHit(in HitInfo hit)
         {
             if (_state == BState.Dead)
@@ -157,7 +174,14 @@ namespace Mehawar.Greybox
             // Phase check on damage: crossing a threshold interrupts everything, readably.
             int target = TargetPhaseIndex();
             if (target > _phaseIndex && _state != BState.Transition && _state != BState.Dormant)
+            {
                 StartTransition(target);
+                return result;
+            }
+
+            // Interruptible archetype: the hit cancels her wind-up, but she slips away.
+            if (!_def.SuperArmor && (_state == BState.Telegraph || _state == BState.Cooldown))
+                StartEvade();
             return result;
         }
 
@@ -183,15 +207,24 @@ namespace Mehawar.Greybox
         {
             if (_state != BState.Dead)
             {
-                float vx = 0f;
-                if (_state == BState.Active && _attack != null && _attack.Kind == BossAttackKind.Charge)
-                    vx = _facing * _def.ChargeSpeed;
-                else if (_state == BState.Cooldown && _backstepTimer > 0f)
-                    vx = -_facing * backstepSpeed;
-                Body.linearVelocity = new Vector2(vx, Body.linearVelocity.y);
+                bool ballistic = _state == BState.Evade
+                    || (_state == BState.Active && _attack != null && _attack.Kind == BossAttackKind.Leap);
+                if (!ballistic)   // vaults and leaps fly on the velocity set at launch
+                {
+                    float vx = 0f;
+                    if (_state == BState.Active && _attack != null
+                        && (_attack.Kind == BossAttackKind.Charge || _attack.Kind == BossAttackKind.Lunge))
+                        vx = _facing * DashSpeed(_attack);
+                    else if (_state == BState.Cooldown && _backstepTimer > 0f)
+                        vx = -_facing * backstepSpeed;
+                    Body.linearVelocity = new Vector2(vx, Body.linearVelocity.y);
+                }
             }
             base.FixedUpdate();   // super-armor never buffers knockback, but keep the contract
         }
+
+        private float DashSpeed(BossAttackDef attack)
+            => attack.MoveSpeed > 0f ? attack.MoveSpeed : _def.ChargeSpeed;
 
         private void TickBoss(float dt)
         {
@@ -229,9 +262,28 @@ namespace Mehawar.Greybox
                     _facing = dx >= 0f ? 1 : -1;
                     if (_backstepTimer > 0f)
                         _backstepTimer -= dt;
+                    if (_evadeCooldown > 0f)
+                        _evadeCooldown -= dt;
+                    // Elusive archetype: crowding her while she waits triggers the vault.
+                    if (!_def.SuperArmor && _def.EvadeCrowdDistance > 0f && _evadeCooldown <= 0f
+                        && Mathf.Abs(dx) < _def.EvadeCrowdDistance)
+                    {
+                        StartEvade();
+                        break;
+                    }
                     _timer -= dt;
                     if (_timer <= 0f)
                         StartAttack();
+                    break;
+
+                case BState.Evade:
+                    _timer -= dt;
+                    // Land when the arc is done: minimum airtime, then grounded (vertical rest).
+                    if (_timer <= 0f || (_stateMax - _timer > 0.25f && Mathf.Abs(Body.linearVelocity.y) < 0.05f))
+                    {
+                        _state = BState.Cooldown;
+                        _timer = 0.35f;   // short breath: the armed counter comes out fast
+                    }
                     break;
 
                 case BState.Telegraph:
@@ -282,6 +334,8 @@ namespace Mehawar.Greybox
             _attackCursor = 0;
             _chainLeft = 0;
             _backstepTimer = 0f;
+            _evadeCooldown = 0f;
+            _counterArmed = false;
             _slashHitbox.enabled = false;
             transform.position = _origin;
             Body.linearVelocity = Vector2.zero;
@@ -312,26 +366,63 @@ namespace Mehawar.Greybox
             _facing = Player != null && Player.position.x >= transform.position.x ? 1 : -1;
             _hitThisSwing = false;
             _currentTelegraph = _attack.Telegraph * phase.TelegraphScale;
+            if (_counterArmed)
+            {
+                _currentTelegraph *= _def.CounterTelegraphScale;   // the punish for blind chasing
+                _counterArmed = false;
+            }
             _timer = _currentTelegraph;
             _state = BState.Telegraph;
+        }
+
+        private void StartEvade()
+        {
+            _slashHitbox.enabled = false;
+            _counterArmed = true;
+            _evadeCooldown = 1.2f;   // rate limit: no infinite kiting loops
+
+            // Vault away from the player; if the wall is too close on that side, vault OVER him.
+            float dir = Player != null && Player.position.x >= transform.position.x ? -1f : 1f;
+            float landingX = transform.position.x + dir * 6f;
+            if (landingX < _arenaMinX + 1.5f || landingX > _arenaMaxX - 1.5f)
+                dir = -dir;
+            _facing = (int)-dir;   // keep facing the threat while flying away
+            Body.linearVelocity = new Vector2(dir * _def.EvadeSpeed, 9f);
+            _state = BState.Evade;
+            _stateMax = 1.0f;
+            _timer = _stateMax;
         }
 
         private void BeginActive()
         {
             _state = BState.Active;
             _timer = _attack!.Active;
-            if (_attack.Kind == BossAttackKind.Slash)
+            _stateMax = _timer;
+
+            switch (_attack.Kind)
             {
-                _slashHitbox.offset = new Vector2(_facing * slashHitboxOffset.x, slashHitboxOffset.y);
-                _slashHitbox.enabled = true;
-            }
-            else if (_attack.Kind == BossAttackKind.Shockwave)
-            {
-                float feetY = _bodyCollider.bounds.min.y;
-                BossShockwave.Spawn(transform.position.x, feetY, 1, _attack.Damage, hitstunInflicted,
-                    _playerMask, _def.ShockwaveSpeed, _arenaMaxX, transform);
-                BossShockwave.Spawn(transform.position.x, feetY, -1, _attack.Damage, hitstunInflicted,
-                    _playerMask, _def.ShockwaveSpeed, _arenaMinX, transform);
+                case BossAttackKind.Slash:
+                    _slashHitbox.offset = new Vector2(_facing * slashHitboxOffset.x, slashHitboxOffset.y);
+                    _slashHitbox.enabled = true;
+                    break;
+
+                case BossAttackKind.Shockwave:
+                    float feetY = _bodyCollider.bounds.min.y;
+                    BossShockwave.Spawn(transform.position.x, feetY, 1, _attack.Damage, hitstunInflicted,
+                        _playerMask, _def.ShockwaveSpeed, _arenaMaxX, transform);
+                    BossShockwave.Spawn(transform.position.x, feetY, -1, _attack.Damage, hitstunInflicted,
+                        _playerMask, _def.ShockwaveSpeed, _arenaMinX, transform);
+                    break;
+
+                case BossAttackKind.Leap:
+                    // Ballistic arc onto (slightly past) the player: the danger is the LANDING.
+                    float targetX = Player != null ? Player.position.x + _facing * 2f : transform.position.x;
+                    targetX = Mathf.Clamp(targetX, _arenaMinX + 1.5f, _arenaMaxX - 1.5f);
+                    const float leapVy = 10f;
+                    float gravity = Mathf.Abs(Physics2D.gravity.y) * Body.gravityScale;
+                    float flight = 2f * leapVy / gravity;   // same-height flight time
+                    Body.linearVelocity = new Vector2((targetX - transform.position.x) / flight, leapVy);
+                    break;
             }
         }
 
@@ -344,13 +435,24 @@ namespace Mehawar.Greybox
             {
                 ScanOverlap(_slashHitbox.bounds.center, _slashHitbox.bounds.size);
             }
-            else if (kind == BossAttackKind.Charge)
+            else if (kind == BossAttackKind.Charge || kind == BossAttackKind.Lunge)
             {
                 // The body itself is the weapon while rushing.
                 ScanOverlap(_bodyCollider.bounds.center, _bodyCollider.bounds.size * 1.1f);
                 float x = transform.position.x;
                 if ((_facing > 0 && x >= _arenaMaxX - 1.5f) || (_facing < 0 && x <= _arenaMinX + 1.5f))
                     _timer = 0f;   // wall reached: stop early
+            }
+            else if (kind == BossAttackKind.Leap)
+            {
+                // Airborne = harmless; the strike happens once, on landing.
+                bool landed = _stateMax - _timer > 0.25f && Mathf.Abs(Body.linearVelocity.y) < 0.05f;
+                if (landed)
+                {
+                    _facing = Player != null && Player.position.x >= transform.position.x ? 1 : -1;
+                    ScanOverlap(_bodyCollider.bounds.center, new Vector2(3.2f, 2.2f));
+                    _timer = 0f;   // straight to recovery: the punish window opens
+                }
             }
 
             if (_timer <= 0f)

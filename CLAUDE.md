@@ -112,5 +112,8 @@ segnalali con suggerimenti migliorativi.
 - **Livello 2 "Il Passo Conteso" costruito e validato** (pilota dual-moveset, R4):
   corridoio-strozzatura, cenge letali con KillZone, traversata anti-Bloodlust, arena
   a doppio fronte. `LevelCatalog` gestisce le sequenze per campagna ("Prosegui" a fine
-  livello); pausa completa (Esc/Start via action map UI, PauseManager). Boss Xardast
-  e "La Chiamata" (Romana liv.1) ancora da fare. Nota: manca un repository git.
+  livello); pausa completa (Esc/Start via action map UI, PauseManager). **Boss Xardast
+  implementata** (archetipo mobile/elusivo del framework: SuperArmor=false, evade +
+  contrattacco, kit Lame/Affondo/Balzo, fasi La Caccia/La Trappola/La Belva) — il
+  framework ora copre i due archetipi opposti (muro vs cacciatrice). "La Chiamata"
+  (Romana liv.1, boss Dorlok) ancora da fare. Versioning attivo su origin/main.

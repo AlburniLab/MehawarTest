@@ -111,6 +111,8 @@ namespace Mehawar.Greybox
             _levelComplete.SetActive(false);
             EventSystem.current.SetSelectedGameObject(null);   // UI focus off while playing
             DetachPauseInput();                                // never double-subscribe across runs
+            if (_levelRoot != null)
+                Destroy(_levelRoot);                           // starting over a running level must not stack roots
             _levelRoot = _builder.BuildLevel(info.BuilderId, OnGoalReached);
             _playerInput = _levelRoot.GetComponentInChildren<PlayerInputHub>();
 

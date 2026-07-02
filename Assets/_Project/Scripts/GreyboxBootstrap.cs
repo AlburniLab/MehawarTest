@@ -194,7 +194,9 @@ namespace Mehawar.Greybox
             foreach (float x in FanteXs)
                 SpawnFante(hittableLayer, playerLayer, x, GroundTopY);
 
-            SpawnBoss(hittableLayer, playerLayer);
+            SpawnBoss(hittableLayer, playerLayer, BossGaull.Create(),
+                new Vector2(BossX, GroundTopY + 1.25f), new Vector2(1.5f, 2.5f),
+                new Color(1f, 0.70f, 0.65f), ArenaMinX, ArenaMaxX);
         }
 
         // --- "Il Passo Conteso" (Via Romana liv. 2, R4) — layout as code, west -> east, CLIMBING.
@@ -223,10 +225,10 @@ namespace Mehawar.Greybox
             // S4 — walled pocket arena (two-front squeeze), entered by dropping down 1u.
             CreateSolid("Floor.S4", new Vector2(104f, 1f), new Vector2(24f, 4f), groundLayer);       // x 92..116, top 3.0
 
-            // S5 — final steps to the summit (future Xardast arena stub) + active gold goal.
+            // S5 — final steps to the SUMMIT ARENA (Xardast: mobile boss needs room, x 122..140).
             CreateSolid("S5.StepA", new Vector2(119f, 1.5f), new Vector2(6f, 6f), groundLayer);      // x 116..122, top 4.5
-            CreateSolid("S5.StepB", new Vector2(127f, 2f), new Vector2(10f, 8f), groundLayer);       // x 122..132, top 6.0
-            CreateSolid("Wall.Right", new Vector2(132.5f, 8f), new Vector2(1f, 10f), groundLayer);
+            CreateSolid("S5.StepB", new Vector2(131f, 2f), new Vector2(18f, 8f), groundLayer);       // x 122..140, top 6.0
+            CreateSolid("Wall.Right", new Vector2(140.5f, 8f), new Vector2(1f, 10f), groundLayer);
 
             // Chasm hazard: everything that falls, dies (player via the death rule).
             var kz = CreateSolid("KillZone", new Vector2(66f, -9f), new Vector2(54f, 2f), 0);        // x 39..93
@@ -234,9 +236,12 @@ namespace Mehawar.Greybox
             kz.GetComponent<BoxCollider2D>().isTrigger = true;
             kz.AddComponent<KillZone>();
 
-            _goal = CreateSolid("Goal", new Vector2(129f, 7.5f), new Vector2(2f, 3f), 0);
-            _goal.GetComponent<SpriteRenderer>().color = GoalColor;
-            _goal.GetComponent<BoxCollider2D>().isTrigger = true;   // active from the start: no boss yet
+            // Goal PAST the arena: gray and inert until Xardast falls (Gaull-gate pattern).
+            _goal = CreateSolid("Goal", new Vector2(137f, 7.5f), new Vector2(2f, 3f), 0);
+            _goal.GetComponent<SpriteRenderer>().color = new Color(0.45f, 0.45f, 0.48f);
+            var goalCol = _goal.GetComponent<BoxCollider2D>();
+            goalCol.isTrigger = true;
+            goalCol.enabled = false;
             _goalTrigger = _goal.AddComponent<GoalTrigger>();
         }
 
@@ -262,16 +267,20 @@ namespace Mehawar.Greybox
             SpawnFante(hittableLayer, playerLayer, 103f, 3.0f);
             SpawnFante(hittableLayer, playerLayer, 112f, 3.0f);
 
-            // S5 — last guard on the summit steps.
-            SpawnFante(hittableLayer, playerLayer, 125f, 6.0f);
+            // S5 — last guard at the arena entrance, then the huntress herself.
+            SpawnFante(hittableLayer, playerLayer, 124f, 6.0f);
+            SpawnBoss(hittableLayer, playerLayer, BossXardast.Create(),
+                new Vector2(133f, 7.0f), new Vector2(1.0f, 2.0f),
+                new Color(1f, 0.78f, 0.55f), 122f, 140f);
         }
 
-        private void SpawnBoss(int hittableLayer, int playerLayer)
+        private void SpawnBoss(int hittableLayer, int playerLayer, BossDefinition def,
+            Vector2 position, Vector2 bodySize, Color tint, float arenaMinX, float arenaMaxX)
         {
-            var bossGo = new GameObject("BossGaull") { layer = hittableLayer };
+            var bossGo = new GameObject("Boss" + def.Name) { layer = hittableLayer };
             bossGo.transform.SetParent(_levelRoot, false);
-            bossGo.transform.position = new Vector2(BossX, GroundTopY + 1.25f);   // body 1.5 x 2.5 u
-            bossGo.transform.localScale = new Vector3(1.5f, 2.5f, 1f);
+            bossGo.transform.position = position;
+            bossGo.transform.localScale = new Vector3(bodySize.x, bodySize.y, 1f);
 
             var sr = bossGo.AddComponent<SpriteRenderer>();
             sr.sprite = _unitSprite;
@@ -282,11 +291,11 @@ namespace Mehawar.Greybox
             bossGo.AddComponent<Rigidbody2D>();                 // configured by TrainingDummy.Awake
 
             var boss = bossGo.AddComponent<BossController>();
-            boss.Configure(BossGaull.Create(), 1 << playerLayer, ArenaMinX, ArenaMaxX);
+            boss.Configure(def, 1 << playerLayer, arenaMinX, arenaMaxX);
             boss.BossDefeated += ActivateGoal;
 
             var anim = bossGo.AddComponent<SpriteAnimator>();
-            anim.Configure(PlaceholderAnimationFactory.GetShared(), new Color(1f, 0.70f, 0.65f));
+            anim.Configure(PlaceholderAnimationFactory.GetShared(), tint);
             bossGo.AddComponent<BossAnimationDriver>();
 
             var hudGo = new GameObject("BossDebugHUD");
@@ -300,7 +309,7 @@ namespace Mehawar.Greybox
                 return;
             _goal.GetComponent<SpriteRenderer>().color = GoalColor;
             _goal.GetComponent<BoxCollider2D>().enabled = true;
-            Debug.Log("[Level] Gaull è caduto — il varco dorato si apre.");
+            Debug.Log("[Level] Il guardiano è caduto — il varco dorato si apre.");
         }
 
         private GameObject CreateSolid(string name, Vector2 position, Vector2 size, int layer)

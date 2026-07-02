@@ -46,6 +46,9 @@ namespace Mehawar.Greybox
                 case BossController.BossAnim.Move:
                     _anim.PlayLoop(AnimState.Run);
                     break;
+                case BossController.BossAnim.Evade:
+                    _anim.Play(AnimState.Jump, _boss.EvadeDuration);
+                    break;
                 default:
                     _anim.PlayLoop(AnimState.Idle);
                     break;

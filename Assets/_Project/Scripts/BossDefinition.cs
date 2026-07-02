@@ -1,14 +1,17 @@
 #nullable enable
 using System;
+using UnityEngine;
 
 namespace Mehawar.Greybox
 {
-    /// <summary>The three greybox boss attack archetypes, all telegraphed and dodge-on-sight.</summary>
+    /// <summary>The greybox boss attack archetypes, all telegraphed and dodge-on-sight.</summary>
     public enum BossAttackKind
     {
-        Slash,      // wide frontal melee — dodge by stepping back or jumping; parryable
+        Slash,      // frontal melee — dodge by stepping back or jumping; usually parryable
         Charge,     // horizontal rush across the arena — dodge by jumping OVER; unblockable
-        Shockwave   // ground wave on both sides — dodge by jumping; unblockable
+        Shockwave,  // ground wave on both sides — dodge by jumping; unblockable
+        Lunge,      // short fast dash strike (dagger) — dodge sideways/jump; parryable
+        Leap        // ballistic arc onto the player, strike on LANDING — move away; unblockable
     }
 
     /// <summary>One boss attack as data: timings, damage, parry rules. Phases scale telegraphs.</summary>
@@ -17,10 +20,11 @@ namespace Mehawar.Greybox
         public string Label = "";          // Italian, shown by the floating state label
         public BossAttackKind Kind;
         public float Telegraph;            // base seconds, multiplied by the phase's TelegraphScale
-        public float Active;               // strike window (Charge: max duration cap)
+        public float Active;               // strike window (Charge/Lunge/Leap: max duration cap)
         public float Recovery;             // punish window
         public int Damage;
         public bool Unblockable;           // bypasses resource parries (Bastione)
+        public float MoveSpeed;            // u/s for Charge/Lunge (0 = use BossDefinition.ChargeSpeed)
     }
 
     /// <summary>One boss phase: entered when HP fraction drops to EnterAtFraction.</summary>
@@ -43,6 +47,17 @@ namespace Mehawar.Greybox
         public float ChargeSpeed = 10f;      // u/s
         public float ShockwaveSpeed = 8f;    // u/s
         public float TransitionPause = 1.2f; // readable stop between phases
+
+        // --- Mobility archetype (Xardast family). SuperArmor=true = the Gaull wall. ---
+        public bool SuperArmor = true;       // false: hits during Telegraph/Cooldown interrupt AND trigger an evade
+        public float EvadeSpeed = 12f;       // horizontal launch of the escape vault (u/s)
+        public float EvadeCrowdDistance;     // 0 = never evade proximity; >0 = evades when crowded in Cooldown
+        public float CounterTelegraphScale = 1f; // telegraph multiplier for the attack right after an evade
+
+        // Optional slash hitbox override (zero = keep the controller's serialized default).
+        public Vector2 SlashHitboxSize = Vector2.zero;
+        public Vector2 SlashHitboxOffset = Vector2.zero;
+
         public BossAttackDef[] AttackDefs = Array.Empty<BossAttackDef>();
         public BossPhaseDef[] Phases = Array.Empty<BossPhaseDef>();
 
