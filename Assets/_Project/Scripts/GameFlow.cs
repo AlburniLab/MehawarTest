@@ -42,6 +42,8 @@ namespace Mehawar.Greybox
         private GameObject? _levelRoot;
         private PlayerInputHub? _playerInput;
         private PlayerControls? _activeControls;   // cached for pause-action unsubscribe
+        private LevelCatalog.LevelInfo? _currentInfo;
+        private bool _debugRun;                    // out-of-sequence run: no "Prosegui"
 
         /// <summary>True while the pause menu owns the screen (also used by runtime tests).</summary>
         public bool IsPaused => PauseManager.IsPaused;
@@ -90,10 +92,19 @@ namespace Mehawar.Greybox
         /// <summary>Start a level by campaign + 1-based index (LevelCatalog). Public: also the
         /// direct-access API for tests (e.g. StartLevel(ViaRomana, 2) = Il Passo Conteso).</summary>
         public void StartLevel(Campaign campaign, int levelIndex)
+            => LaunchLevel(campaign, levelIndex, LevelCatalog.Get(campaign, levelIndex), false);
+
+        /// <summary>Debug access: run ANY builder with ANY avatar, outside the campaign sequence
+        /// (dual-moveset playtests). No "Prosegui" on completion; Rigioca replays the same run.</summary>
+        public void StartLevelDebug(Campaign campaign, int builderId, string displayName)
+            => LaunchLevel(campaign, GameState.CurrentLevel, new LevelCatalog.LevelInfo(displayName, builderId), true);
+
+        private void LaunchLevel(Campaign campaign, int levelIndex, LevelCatalog.LevelInfo info, bool debugRun)
         {
             GameState.Campaign = campaign;
             GameState.CurrentLevel = levelIndex;
-            LevelCatalog.LevelInfo info = LevelCatalog.Get(campaign, levelIndex);
+            _currentInfo = info;
+            _debugRun = debugRun;
 
             _mainMenu.SetActive(false);
             _campaignSelect.SetActive(false);
@@ -110,7 +121,7 @@ namespace Mehawar.Greybox
                 _activeControls = _playerInput.Controls;
                 _activeControls.UI.Pause.performed += OnPausePerformed;
             }
-            Debug.Log($"[GameFlow] Avvio liv. {levelIndex} «{info.Name}» — {GameState.CampaignName} ({GameState.AvatarName}).");
+            Debug.Log($"[GameFlow] Avvio {(debugRun ? "[TEST] " : "")}«{info.Name}» — {GameState.CampaignName} ({GameState.AvatarName}).");
         }
 
         private void OnGoalReached()
@@ -122,10 +133,10 @@ namespace Mehawar.Greybox
             _levelRoot = null;
             _playerInput = null;
 
-            LevelCatalog.LevelInfo info = LevelCatalog.Get(GameState.Campaign, GameState.CurrentLevel);
-            _completeSubtitle.text = $"{info.Name} — {GameState.CampaignName} ({GameState.AvatarName})";
+            string levelName = _currentInfo != null ? _currentInfo.Name : "?";
+            _completeSubtitle.text = $"{levelName} — {GameState.CampaignName} ({GameState.AvatarName})";
 
-            bool hasNext = LevelCatalog.HasLevel(GameState.Campaign, GameState.CurrentLevel + 1);
+            bool hasNext = !_debugRun && LevelCatalog.HasLevel(GameState.Campaign, GameState.CurrentLevel + 1);
             _continueButton.gameObject.SetActive(hasNext);
             _levelComplete.SetActive(true);
             Select(hasNext ? _continueButton : _replayButton);
@@ -234,9 +245,18 @@ namespace Mehawar.Greybox
             CreateText(column, "Prototipo greybox — Atto I", 22, MutedColor, FontStyle.Italic);
             CreateSpacer(column, 24f);
             _mainFirst = CreateButton(column, "Nuova partita", null, ShowCampaignSelect);
-            CreateButton(column, "[TEST] Il Passo Conteso", "Accesso diretto al liv. 2 della Via Romana (greybox).",
+            CreateButton(column, "[TEST] Passo Conteso — Cesare", "Percorso reale: Via Romana liv. 2 (Favore/Bastione).",
                 () => StartLevel(Campaign.ViaRomana, 2));
+            CreateButton(column, "[TEST] Passo Conteso — Lucius", "Fuori sequenza, per il test dual-moveset (Sete di sangue/Furia).",
+                () => StartLevelDebug(Campaign.ViaOscura, LevelCatalog.PassoContesoBuilder, "Il Passo Conteso"));
             CreateButton(column, "Esci", null, QuitGame);
+        }
+
+        private void ReplayCurrent()
+        {
+            if (_currentInfo == null)
+                return;
+            LaunchLevel(GameState.Campaign, GameState.CurrentLevel, _currentInfo, _debugRun);
         }
 
         private void BuildCampaignSelect(Transform canvas)
@@ -277,8 +297,7 @@ namespace Mehawar.Greybox
             CreateSpacer(column, 20f);
             _continueButton = CreateButton(column, "Prosegui", null,
                 () => StartLevel(GameState.Campaign, GameState.CurrentLevel + 1));
-            _replayButton = CreateButton(column, "Rigioca", null,
-                () => StartLevel(GameState.Campaign, GameState.CurrentLevel));
+            _replayButton = CreateButton(column, "Rigioca", null, ReplayCurrent);
             CreateButton(column, "Torna al menu", null, ShowMainMenu);
         }
 
