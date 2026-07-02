@@ -84,6 +84,10 @@ Assets/_Project/
   2 cicli di compilazione, incluso 1 bug reale di flow trovato e chiuso dai test.
   Il prossimo boss su archetipo esistente (solo `BossDefinition`) misurerà il
   costo marginale puro — atteso ben sotto i 20 min.
+- **CONFERMATO con "Dorlok"**: boss su archetipo esistente = 1 file `BossDefinition`
+  (~10 min della sessione); l'intera sessione "La Chiamata" (livello tutorial
+  completo + boss + ricatalogazione + test) ≈ **35-40 min attivi**, 1 ciclo di
+  compilazione, zero errori al primo colpo.
 - Collo di bottiglia del progetto: NON la geometria — boss design, arte, tuning.
 
 ## Versioning
