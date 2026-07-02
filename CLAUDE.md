@@ -76,6 +76,16 @@ Assets/_Project/
 └── Docs/       # copia di questi .md, come riferimento in-editor
 ```
 
+## Metriche di produzione (pipeline greybox)
+- **Livello nuovo** ("Il Passo Conteso", da layout approvato a giocabile e testato):
+  **~27 min**, 1 prompt, 1 ciclo di compilazione, ~20 chiamate MCP (12 di test).
+- **Boss nuovo con estensione framework** ("Xardast", archetipo mobile/elusivo:
+  Evade/Leap/Lunge aggiunti a BossController): **~40 min stimati**, 1 prompt,
+  2 cicli di compilazione, incluso 1 bug reale di flow trovato e chiuso dai test.
+  Il prossimo boss su archetipo esistente (solo `BossDefinition`) misurerà il
+  costo marginale puro — atteso ben sotto i 20 min.
+- Collo di bottiglia del progetto: NON la geometria — boss design, arte, tuning.
+
 ## Versioning
 - Remote: `origin` → https://github.com/AlburniLab/MehawarTest.git (private).
 - **Un commit per milestone chiusa** (checkpoint approvato / fase conclusa), non per file.

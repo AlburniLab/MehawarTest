@@ -36,6 +36,9 @@ namespace Mehawar.Greybox
                     break;
                 case BossController.BossAnim.Telegraph:
                     _anim.Play(AnimState.Telegraph, _boss.CurrentTelegraph);
+                    // Tutorial-grade readability: name the incoming attack, not just "Telegrafo".
+                    if (_boss.CurrentAttackLabel.Length > 0)
+                        _anim.OverrideLabel(_boss.CurrentAttackLabel);
                     break;
                 case BossController.BossAnim.Strike:
                     _anim.Play(AnimState.Active, _boss.CurrentActive);

@@ -118,6 +118,12 @@ namespace Mehawar.Greybox
                 player = SpawnPlayer(_groundLayerId, _hittableLayerId, _playerLayerId);
                 SpawnPassoActors(_hittableLayerId, _playerLayerId);
             }
+            else if (builderId == LevelCatalog.ChiamataBuilder)
+            {
+                BuildChiamataGeometry(_groundLayerId);
+                player = SpawnPlayer(_groundLayerId, _hittableLayerId, _playerLayerId);
+                SpawnChiamataActors(_hittableLayerId, _playerLayerId);
+            }
             else
             {
                 BuildRisveglioGeometry(_groundLayerId);
@@ -272,6 +278,112 @@ namespace Mehawar.Greybox
             SpawnBoss(hittableLayer, playerLayer, BossXardast.Create(),
                 new Vector2(133f, 7.0f), new Vector2(1.0f, 2.0f),
                 new Color(1f, 0.78f, 0.55f), 122f, 140f);
+        }
+
+        // --- "La Chiamata" (Via Romana liv. 1, R6 Roma intatta) — the Cesare TUTORIAL: flat,
+        // monumental, west -> east toward the gates. Encounter structure teaches the philosophy:
+        // T1 reach, T2 Favore grows clean, T3 the ambush zeroes it, T4 the Bastione showcase.
+        private void BuildChiamataGeometry(int groundLayer)
+        {
+            // S0 Foro + T1 Strada + T2 Colonnato: one long ceremonial street (x 0..58).
+            CreateSolid("Wall.Left", new Vector2(-0.5f, 1.5f), new Vector2(1f, 8f), groundLayer);
+            CreateSolid("Floor.Strada", new Vector2(29f, -4.5f), new Vector2(58f, 4f), groundLayer);   // top -2.5
+
+            // R6 flavor: monumental backdrop (sprite-only, never blocks).
+            CreateDecor("Decor.Arco", new Vector2(8f, 1.5f), new Vector2(6f, 8f));
+            CreateDecor("Decor.Colonna1", new Vector2(34f, 0.5f), new Vector2(1.2f, 6f));
+            CreateDecor("Decor.Colonna2", new Vector2(42f, 0.5f), new Vector2(1.2f, 6f));
+            CreateDecor("Decor.Colonna3", new Vector2(50f, 0.5f), new Vector2(1.2f, 6f));
+
+            // T3 — La Piazza dell'Agguato: a sunken bowl (drop 1u in, hop 1u out).
+            CreateSolid("T3.Conca", new Vector2(68f, -5.5f), new Vector2(20f, 4f), groundLayer);       // x 58..78, top -3.5
+            CreateDecor("Decor.Pilastro", new Vector2(62.5f, -1.5f), new Vector2(1.4f, 4f));           // hides the ambusher
+
+            // T4 — Il Camminamento: steps up to the city walls, with a BREACH in the walkway.
+            CreateSolid("T4.StepA", new Vector2(80f, -3.5f), new Vector2(4f, 4f), groundLayer);        // x 78..82, top -1.5
+            CreateSolid("T4.StepB", new Vector2(84f, -2.5f), new Vector2(4f, 4f), groundLayer);        // x 82..86, top -0.5
+            CreateSolid("T4.MuraA", new Vector2(88f, -2f), new Vector2(4f, 4f), groundLayer);          // x 86..90, top 0
+            CreateSolid("T4.MuraB", new Vector2(94.5f, -2f), new Vector2(3f, 4f), groundLayer);        // x 93..96, top 0 (breach 90..93)
+            var kz = CreateSolid("KillZone", new Vector2(91.5f, -7f), new Vector2(5f, 2f), 0);
+            kz.GetComponent<SpriteRenderer>().enabled = false;
+            kz.GetComponent<BoxCollider2D>().isTrigger = true;
+            kz.AddComponent<KillZone>();
+
+            // ARENA — Le Porte (x 96..122, back at street level), goal inert until Dorlok falls.
+            CreateSolid("Floor.Porte", new Vector2(109f, -4.5f), new Vector2(26f, 4f), groundLayer);   // top -2.5
+            CreateDecor("Decor.Porta", new Vector2(120f, 1.5f), new Vector2(4f, 8f));
+            CreateSolid("Wall.Right", new Vector2(122.5f, 1.5f), new Vector2(1f, 8f), groundLayer);
+
+            _goal = CreateSolid("Goal", new Vector2(118f, -1f), new Vector2(2f, 3f), 0);
+            _goal.GetComponent<SpriteRenderer>().color = new Color(0.45f, 0.45f, 0.48f);
+            var goalCol = _goal.GetComponent<BoxCollider2D>();
+            goalCol.isTrigger = true;
+            goalCol.enabled = false;
+            _goalTrigger = _goal.AddComponent<GoalTrigger>();
+
+            // The three environmental inscriptions (Italian, one line each — the whole "text").
+            CreateInscription(new Vector2(32f, -1.2f), "Il Favore di Marduk cresce solo in chi non viene toccato.");
+            CreateInscription(new Vector2(83f, 0.8f), "Il Bastione respinge ciò che osa colpirti.");
+            CreateInscription(new Vector2(98f, -1.2f), "Alle porte, il sicario attende.");
+        }
+
+        private void SpawnChiamataActors(int hittableLayer, int playerLayer)
+        {
+            // T1 — the reach lesson: one Fante, open ground.
+            SpawnFante(hittableLayer, playerLayer, 22f, GroundTopY);
+
+            // T2 — clean kills make the bar climb in plain sight.
+            SpawnFante(hittableLayer, playerLayer, 38f, GroundTopY);
+            SpawnFante(hittableLayer, playerLayer, 50f, GroundTopY);
+
+            // T3 — the ambush: A visible ahead, B tucked behind the pillar, flanking mid-fight.
+            SpawnFante(hittableLayer, playerLayer, 68f, -3.5f);
+            EnemyFante ambusher = SpawnFante(hittableLayer, playerLayer, 61f, -3.5f);
+            ambusher.AggroRange = 4f;
+
+            // T4 — the Bastione showcase: slow sentinel on the walls, breach on its right.
+            EnemyFante sentinel = SpawnFante(hittableLayer, playerLayer, 88.5f, 0f);
+            sentinel.AggroRange = 2.5f;
+            sentinel.MoveSpeed = 40f;
+            sentinel.PatrolRange = 0.3f;
+
+            SpawnBoss(hittableLayer, playerLayer, BossDorlok.Create(),
+                new Vector2(112f, -1.4f), new Vector2(1.2f, 2.2f),
+                new Color(0.75f, 0.75f, 0.95f), 97f, 121f);   // black-armor cool tint
+        }
+
+        /// <summary>Sprite-only scenery (never collides): monumental R6 backdrop blocks.</summary>
+        private GameObject CreateDecor(string name, Vector2 position, Vector2 size)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(_levelRoot, false);
+            go.transform.position = position;
+            go.transform.localScale = new Vector3(size.x, size.y, 1f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = _unitSprite;
+            sr.color = new Color(0.45f, 0.42f, 0.38f);   // warm imperial stone, behind the action
+            sr.sortingOrder = -5;
+            return go;
+        }
+
+        /// <summary>A stone slab with a one-line Italian inscription (world-space TextMesh).</summary>
+        private void CreateInscription(Vector2 position, string text)
+        {
+            GameObject slab = CreateDecor("Inscription", position, new Vector2(1.8f, 1.2f));
+            slab.GetComponent<SpriteRenderer>().color = new Color(0.55f, 0.50f, 0.42f);
+
+            var textGo = new GameObject("Text");
+            textGo.transform.SetParent(slab.transform, false);
+            textGo.transform.localScale = new Vector3(1f / 1.8f, 1f / 1.2f, 1f);   // undo slab scale
+            textGo.transform.localPosition = new Vector3(0f, 1.1f, 0f);
+            var tm = textGo.AddComponent<TextMesh>();
+            tm.text = text;
+            tm.anchor = TextAnchor.LowerCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.characterSize = 0.07f;
+            tm.fontSize = 32;
+            tm.color = new Color(0.9f, 0.85f, 0.7f);
+            textGo.GetComponent<MeshRenderer>().sortingOrder = 40;
         }
 
         private void SpawnBoss(int hittableLayer, int playerLayer, BossDefinition def,

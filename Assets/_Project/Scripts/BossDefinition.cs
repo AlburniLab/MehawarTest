@@ -10,8 +10,9 @@ namespace Mehawar.Greybox
         Slash,      // frontal melee — dodge by stepping back or jumping; usually parryable
         Charge,     // horizontal rush across the arena — dodge by jumping OVER; unblockable
         Shockwave,  // ground wave on both sides — dodge by jumping; unblockable
-        Lunge,      // short fast dash strike (dagger) — dodge sideways/jump; parryable
-        Leap        // ballistic arc onto the player, strike on LANDING — move away; unblockable
+        Lunge,      // short fast dash strike (dagger/spear) — dodge sideways/jump; parryable
+        Leap,       // ballistic arc onto the player, strike on LANDING — move away; unblockable
+        Grab        // behaves exactly like Slash; exists so a boss can carry TWO melee shapes
     }
 
     /// <summary>One boss attack as data: timings, damage, parry rules. Phases scale telegraphs.</summary>
@@ -25,6 +26,11 @@ namespace Mehawar.Greybox
         public int Damage;
         public bool Unblockable;           // bypasses resource parries (Bastione)
         public float MoveSpeed;            // u/s for Charge/Lunge (0 = use BossDefinition.ChargeSpeed)
+
+        // Optional per-attack melee hitbox (Slash/Grab kinds); zero = the boss-level default.
+        // Lets one boss carry different melee shapes (e.g. low sweep vs deep grab).
+        public Vector2 HitboxSize = Vector2.zero;
+        public Vector2 HitboxOffset = Vector2.zero;
     }
 
     /// <summary>One boss phase: entered when HP fraction drops to EnterAtFraction.</summary>

@@ -25,6 +25,7 @@ namespace Mehawar.Greybox
 
         public const int RisveglioBuilder = 1;
         public const int PassoContesoBuilder = 2;
+        public const int ChiamataBuilder = 3;
 
         private static readonly LevelInfo[] Oscura =
         {
@@ -33,7 +34,7 @@ namespace Mehawar.Greybox
 
         private static readonly LevelInfo[] Romana =
         {
-            new LevelInfo("Il Risveglio", RisveglioBuilder),      // placeholder until "La Chiamata"
+            new LevelInfo("La Chiamata", ChiamataBuilder),
             new LevelInfo("Il Passo Conteso", PassoContesoBuilder),
         };
 

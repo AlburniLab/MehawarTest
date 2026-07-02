@@ -97,6 +97,9 @@ namespace Mehawar.Greybox
         /// <summary>Duration of the current evade vault (visuals stretch to this).</summary>
         public float EvadeDuration => _stateMax;
 
+        /// <summary>Italian name of the attack being telegraphed (tutorial-grade readability).</summary>
+        public string CurrentAttackLabel => _attack != null ? _attack.Label : "";
+
         /// <summary>Inject the boss data and arena bounds (called by the level builder).</summary>
         public void Configure(BossDefinition def, LayerMask playerMask, float arenaMinX, float arenaMaxX)
         {
@@ -402,7 +405,12 @@ namespace Mehawar.Greybox
             switch (_attack.Kind)
             {
                 case BossAttackKind.Slash:
-                    _slashHitbox.offset = new Vector2(_facing * slashHitboxOffset.x, slashHitboxOffset.y);
+                case BossAttackKind.Grab:
+                    // Per-attack melee shape when provided (low sweep, deep grab...), else the default.
+                    Vector2 size = _attack.HitboxSize != Vector2.zero ? _attack.HitboxSize : slashHitboxSize;
+                    Vector2 off = _attack.HitboxSize != Vector2.zero ? _attack.HitboxOffset : slashHitboxOffset;
+                    _slashHitbox.size = size;
+                    _slashHitbox.offset = new Vector2(_facing * off.x, off.y);
                     _slashHitbox.enabled = true;
                     break;
 
@@ -431,7 +439,7 @@ namespace Mehawar.Greybox
             _timer -= dt;
             BossAttackKind kind = _attack!.Kind;
 
-            if (kind == BossAttackKind.Slash)
+            if (kind == BossAttackKind.Slash || kind == BossAttackKind.Grab)
             {
                 ScanOverlap(_slashHitbox.bounds.center, _slashHitbox.bounds.size);
             }
