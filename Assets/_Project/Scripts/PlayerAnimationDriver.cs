@@ -9,7 +9,6 @@ namespace Mehawar.Greybox
     /// read from the owning components' tunables AT the transition — never hardcoded — so the
     /// visual sweep always matches the gameplay window. Fury is an aura overlay, not a state.
     /// </summary>
-    [RequireComponent(typeof(SpriteAnimator))]
     [RequireComponent(typeof(Rigidbody2D))]
     public sealed class PlayerAnimationDriver : MonoBehaviour
     {
@@ -30,7 +29,8 @@ namespace Mehawar.Greybox
 
         private void Awake()
         {
-            _anim = GetComponent<SpriteAnimator>();
+            // Real art lives on a counter-scaled "Visual" child; placeholders sit on the root.
+            _anim = GetComponentInChildren<SpriteAnimator>();
             _rb = GetComponent<Rigidbody2D>();
             _ground = GetComponent<GroundSensor>();
             _combat = GetComponent<PlayerCombat>();

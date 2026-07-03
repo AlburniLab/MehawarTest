@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dedd220b8f0504f10b6c4964b02ca208, type: 3}
+  m_Name: LuciusAnimationSet
+  m_EditorClassIdentifier: Assembly-CSharp::Mehawar.Greybox.ActorAnimationSet
+  states:
+  - state: 0
+    frames:
+    - {fileID: -2116178127, guid: 7f5ca6b133bf74a0ba9bea24989f1fff, type: 3}
+    - {fileID: 1007373956, guid: 7f5ca6b133bf74a0ba9bea24989f1fff, type: 3}
+    - {fileID: 801339851, guid: 7f5ca6b133bf74a0ba9bea24989f1fff, type: 3}
+    - {fileID: -1985600424, guid: 7f5ca6b133bf74a0ba9bea24989f1fff, type: 3}
+    - {fileID: -1184186760, guid: 7f5ca6b133bf74a0ba9bea24989f1fff, type: 3}
+    - {fileID: -28820841, guid: 7f5ca6b133bf74a0ba9bea24989f1fff, type: 3}
+    loop: 1
+    loopFps: 6
+  - state: 1
+    frames:
+    - {fileID: 532978614, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: 889635741, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: 1428288414, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: -951482612, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: -1170000808, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: 489327116, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: 271448776, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    - {fileID: 12409526, guid: fce822009a66d439a8bd66b926dff3ab, type: 3}
+    loop: 1
+    loopFps: 10
+  - state: 2
+    frames:
+    - {fileID: -2037711688, guid: 313b9751508ee4c1ca12b7774752b7a6, type: 3}
+    - {fileID: 594843614, guid: 313b9751508ee4c1ca12b7774752b7a6, type: 3}
+    loop: 1
+    loopFps: 6
+  - state: 3
+    frames:
+    - {fileID: -786492432, guid: 313b9751508ee4c1ca12b7774752b7a6, type: 3}
+    loop: 1
+    loopFps: 1
+  - state: 4
+    frames:
+    - {fileID: -228362678, guid: e3c4a19588d834af6a4fd1250c31713f, type: 3}
+    loop: 0
+    loopFps: 8
+  - state: 5
+    frames:
+    - {fileID: 1847880598, guid: e3c4a19588d834af6a4fd1250c31713f, type: 3}
+    - {fileID: -588534277, guid: e3c4a19588d834af6a4fd1250c31713f, type: 3}
+    loop: 0
+    loopFps: 8
+  - state: 6
+    frames:
+    - {fileID: -520564155, guid: e3c4a19588d834af6a4fd1250c31713f, type: 3}
+    - {fileID: -247710768, guid: e3c4a19588d834af6a4fd1250c31713f, type: 3}
+    - {fileID: -372312393, guid: e3c4a19588d834af6a4fd1250c31713f, type: 3}
+    loop: 0
+    loopFps: 8
+  - state: 8
+    frames:
+    - {fileID: -2007594702, guid: 2ec3bb59fae144293b184c7f7435f44d, type: 3}
+    - {fileID: 1893056567, guid: 2ec3bb59fae144293b184c7f7435f44d, type: 3}
+    loop: 0
+    loopFps: 8
+  - state: 9
+    frames:
+    - {fileID: 1893056567, guid: 2ec3bb59fae144293b184c7f7435f44d, type: 3}
+    loop: 0
+    loopFps: 8

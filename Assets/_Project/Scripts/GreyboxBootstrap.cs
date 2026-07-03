@@ -475,8 +475,30 @@ namespace Mehawar.Greybox
             player.AddComponent<PlayerHealth>();          // HP + death/respawn; spawn point = spawn position
             player.AddComponent<PlayerHitReceiver>();     // receives enemy hits (knockback + hitstun)
 
-            var anim = player.AddComponent<SpriteAnimator>();
-            anim.Configure(PlaceholderAnimationFactory.GetShared(), PlayerTint);
+            // Real sprites (Fase 3): counter-scaled child at scale 1 (Docs/30 §5) so the native
+            // art is not distorted by the stretched greybox body. Placeholder path is the fallback
+            // (Cesare, or Lucius before the set asset exists).
+            var realSet = Resources.Load<ActorAnimationSet>("LuciusAnimationSet");
+            if (oscura && realSet != null)
+            {
+                sr.enabled = false;                       // hide the greybox slab, keep the collider
+                GameObject visual = HitboxFactory.CreateCounterScaledChild(player.transform, "Visual");
+                visual.transform.localPosition = new Vector3(0f, -0.5f, 0f); // sprite pivot (feet) at collider bottom
+                var vsr = visual.AddComponent<SpriteRenderer>();
+                vsr.sortingOrder = 10;
+                var realAnim = visual.AddComponent<SpriteAnimator>();
+                realAnim.Configure(realSet, Color.white); // real art: no identity tint, aura still overlays
+                // The debug label default offset assumes the stretched slab; real art is ~2u tall
+                // with the pivot at the feet, so lift it above the head.
+                Transform label = visual.transform.Find("StateLabel");
+                if (label != null)
+                    label.localPosition = new Vector3(0f, 2.15f, 0f);
+            }
+            else
+            {
+                var anim = player.AddComponent<SpriteAnimator>();
+                anim.Configure(PlaceholderAnimationFactory.GetShared(), PlayerTint);
+            }
             player.AddComponent<PlayerAnimationDriver>();
             return player;
         }
