@@ -1,0 +1,78 @@
+{
+  "project": "Mehawar — Fase 2 art pipeline (Lucius)",
+  "updated": "2026-07-03",
+  "rule": "Lucius in gioco è SEMPRE come la REF originale (colori caldi cremisi/oro). NESSUN recolor. Si anima la REF a risoluzione NATIVA (220×220 con margine); la lama esce sempre a fiamma dal generatore → freeze/sostituzione in post. La gonna è una TUNICA: capo unico, mai pantaloni. Adattamento Unity = passo separato ed esplicito. Docs/30 §3.",
+  "keep": [
+    {
+      "asset_id": "eaab4e41-2cf0-4146-b31a-c1e5196518a9",
+      "label": "Lucius REF — idle approvato (colori originali: pelle pallida, cremisi, viola, lama oro)",
+      "note": "Reference UNICA e intoccabile. Sorgente diretta delle animazioni via animate_game_art."
+    },
+    {
+      "asset_id": "326901cc-6737-4521-805f-9e8dcb2b409f",
+      "label": "Lucius IDLE nativa — ANTEPRIMA ANIMATA (lama congelata, solo gonna)",
+      "note": "GIF caricata come animazione (6f, ×2, fondo grigio): serve a VEDERE il loop in libreria."
+    },
+    {
+      "asset_id": "f2849174-4ed1-4fa4-916b-d4197b13b5dc",
+      "label": "Lucius IDLE nativa — sheet FINALE 6f 1320×220 (lama congelata, trasparente)",
+      "note": "Copia esatta di ~/Mehawar_Art_Staging/Lucius/lucius_idle_native.png. APPROVATA (2026-07-03)."
+    }
+  ],
+  "run_approvata": [
+    {
+      "asset_id": "deca5f7d-31c9-40aa-a169-d3a25afbe502",
+      "label": "Lucius RUN BASE — still falcata APPROVATO (variante A) — sorgente animazione run",
+      "note": "Still in posa di corsa (gpt-image-2, reference=REF). Base della run definitiva. La sua lama è la sorgente dello stamp (bladeA_cut)."
+    },
+    {
+      "asset_id": "a7a44002-9f23-40b0-a461-9819568a2308",
+      "label": "Lucius RUN — grezza dal still A (8f 248×248)",
+      "note": "Movimento APPROVATO dal PO; lama a fiamma sistemata in post."
+    },
+    {
+      "asset_id": "167abfbe-5ca2-435d-9ff9-805f6a62198c",
+      "label": "Lucius RUN — ANTEPRIMA ANIMATA definitiva (da still A, lama rigida)",
+      "note": "GIF 8f 10fps ×2: per VEDERE il loop in libreria."
+    },
+    {
+      "asset_id": "e7454717-4c33-4736-9f4e-2d575f0f09db",
+      "label": "Lucius RUN — sheet FINALE 8f 1984×248 (lama rigida, trasparente)",
+      "note": "Copia esatta di ~/Mehawar_Art_Staging/Lucius/lucius_run.png. APPROVATA (2026-07-03). NB: celle 248×248 (non 220): il generatore aggiunge margine; lo slicing Unity dovrà usare la taglia per-sheet."
+    }
+  ],
+  "attack_approvata": [
+    { "asset_id": "1caf6a3d-4f9c-4e03-a7a4-e5f195b7f1d3", "label": "Lucius ATTACK windup — still E originale (lama generatore)" },
+    { "asset_id": "1aa557db-9f56-499b-8252-584bb8ec8eea", "label": "Lucius ATTACK windup BASE — still E con lama canonica (sorgente animazione)" },
+    { "asset_id": "d6eef872-6928-49b0-a1f1-b12292ea895d", "label": "Lucius ATTACK — grezza spazzata orizzontale 6f (movimento approvato)" },
+    { "asset_id": "8482d341-e453-44e8-b8d5-ec4eb3238303", "label": "Lucius ATTACK — sheet FINALE 6f 1476×246 (spazzata orizzontale)", "note": "Copia di ~/Mehawar_Art_Staging/Lucius/lucius_attack.png. APPROVATA (2026-07-03). 5 frame grezzi intatti + frame transito ricostruito (asta in primo piano + lama canonica). Slicing: [w][a1][a2][r1][r2][r3]." }
+  ],
+  "hurt_approvata": [
+    { "asset_id": "d9ca00a5-995b-4e42-86f6-c7c6701514de", "label": "Lucius HURT 1 — contraccolpo (still)" },
+    { "asset_id": "9edbde9b-238c-445c-90d8-de66916e9869", "label": "Lucius HURT 2 — barcollamento (still; cresta ricolorata bianca in locale)" },
+    { "asset_id": "38d01948-d1c9-4753-b1c1-7196612f82ba", "label": "Lucius HURT — sheet FINALE 2 celle 512×256", "note": "Copia di ~/Mehawar_Art_Staging/Lucius/lucius_hurt.png. APPROVATA (2026-07-03)." }
+  ],
+  "in_valutazione": [
+    {
+      "asset_id": "2b58a4f7-3f07-4eaf-8fae-167f14d26899",
+      "label": "[ELIMINA] run v2 vecchio giro — bocciata",
+      "note": "Superata dalla run da still A. Eliminabile in webapp."
+    },
+    {
+      "asset_id": "166441fc-fd95-4e02-b950-a7710db94e14",
+      "label": "Lucius RUN — still posa falcata, variante B (fase aerea)",
+      "note": "Non scelta (vinse la A). Tenerla come possibile base per il frame di salto? decide il PO."
+    }
+  ],
+  "jump_approvata": [
+    { "asset_id": "7b4b2cd4-902a-4b98-8b2c-3a4032e1c6a2", "label": "Lucius JUMP salita — still (cresta ricolorata bianca in locale)" },
+    { "asset_id": "d16dcb24-9c22-41db-a8ab-764b0a92e952", "label": "Lucius JUMP apice — still" },
+    { "asset_id": "dcf63606-f1db-40f4-981e-d1706e1bfd78", "label": "Lucius JUMP caduta — still (cresta ricolorata bianca in locale)" },
+    { "asset_id": "398c42cc-7fd7-4551-b298-85897f5f1489", "label": "Lucius JUMP — sheet FINALE 3 celle 696×232 (salita/apice/caduta)", "note": "Copia esatta di ~/Mehawar_Art_Staging/Lucius/lucius_jump.png. APPROVATA (2026-07-03). Creste salita/caduta ricolorate bianche in post." }
+  ],
+  "delete_in_webapp": [
+    { "asset_id": "af872074-2c3f-4f48-b452-892108e31393", "label": "[ELIMINA] jump salita v1 — cresta scura" },
+    { "asset_id": "4ab7ed43-946c-4274-b9c6-25d04b9b03da", "label": "[ELIMINA] jump caduta v1 — cresta scura" }
+  ],
+  "history": "2026-07-03: SET FASE 1 COMPLETO E APPROVATO — Idle 6f, Run 8f, Jump 3 still, Attack 6f, Hurt 2 still. Ricetta consolidata: still in posa (gpt-image-2 + reference=REF, vincolo cresta BIANCA e arma forcella-solo-in-cima esplicito) → approvazione PO → animate dal still → post MINIMALE (toccare solo i frame rotti; l'over-editing genera artefatti a catena — lezione attack). Sheet finali in staging (~/Mehawar_Art_Staging/Lucius/) e in libreria. Prossimo passo: Fase 3 — import Unity (slicing scriptato, ActorAnimationSet); NB celle di taglia diversa per sheet (220/232/246/248/256): lo slicing usa la taglia per-sheet, pivot bottom-center da ricalcolare per i frame aerei."
+}

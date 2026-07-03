@@ -43,13 +43,19 @@ contratto tratta windup/active/recovery come stati distinti, non un'unica clip.
 dal runtime a qualunque stato; inoltre in Furia windup/recovery si accorciano
 (÷1.4) e lo stretch dei medesimi frame è automatico.
 
-## 3. Palette — Via Oscura (stato corrotto)
+## 3. Palette — Lucius come l'originale (DECISIONE PRODUCT OWNER 2026-07-03)
 
-- **Bianco osseo** (dominante del corpo), **teal abissale**, **viola vuoto**
-  (Docs/10 §1 — palette dello stato corrotto).
+- **Lucius mantiene SEMPRE i colori della reference approvata** (SpriteCook
+  `eaab4e41`): pelle pallida, cremisi (gonna, polsiere, elmo), viola scuro
+  (fascia), **lama del glaive ORO** (elemento più vistoso), cresta bianca.
+- La precedente palette "stato corrotto" (bianco osseo / teal / viola) è
+  **ABBANDONATA** per gli sprite di Lucius: nessun recolor.
 - **Massimo 16 colori** totali.
-- **1 slot accento RISERVATO alla Furia**: non usarlo negli sprite base —
-  è il margine cromatico dell'aura runtime (oggi tinta ≈ rosso (1, .35, .30)).
+- ⚠️ **Tensione aperta (Furia)**: l'aura runtime della Furia oggi è una tinta
+  rossa (1, .35, .30) — su uno sprite a dominante cremisi è poco leggibile.
+  Raccomandazione TD/GD: spostare l'accento Furia su un colore fuori palette
+  sprite (es. bianco incandescente o nero-viola) al gate di Fase 3. Decisione
+  runtime, zero impatto sulle sheet.
 
 ## 4. Formato di export richiesto
 
