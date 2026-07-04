@@ -1,0 +1,477 @@
+<title>Mehawar — Editor Livelli</title>
+<style>
+  :root{
+    --bg:#16131b; --panel:#1e1926; --panel2:#241e2f; --line:#332b40; --ink:#e8e0d2;
+    --muted:#a89d8e; --teal:#3fb8a8; --crimson:#c05248; --gold:#c9a45a; --orange:#d98a4a;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+  }
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  .app{display:grid;grid-template-rows:52px 1fr 26px;grid-template-columns:180px 1fr 240px;
+       height:100vh;gap:1px;background:var(--line)}
+  header{grid-column:1/4;background:var(--panel);display:flex;align-items:center;gap:10px;padding:0 14px}
+  header h1{font:600 15px Palatino,Georgia,serif;margin:0;white-space:nowrap}
+  header input#lvlname{background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+       padding:6px 10px;font:13px var(--mono);width:200px}
+  header .sp{flex:1}
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+       padding:6px 12px;cursor:pointer;font:13px -apple-system,sans-serif}
+  button:hover{border-color:var(--teal)}
+  button:focus-visible{outline:2px solid var(--teal)}
+  button.primary{background:var(--teal);color:#0c0f0e;border-color:var(--teal);font-weight:600}
+  #tools{background:var(--panel);padding:10px;overflow-y:auto}
+  #tools .sec{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+       margin:12px 0 6px}
+  #tools .sec:first-child{margin-top:0}
+  .tool{display:flex;align-items:center;gap:8px;width:100%;text-align:left;margin-bottom:4px;
+       padding:6px 8px}
+  .tool.active{background:var(--teal);color:#0c0f0e;border-color:var(--teal);font-weight:600}
+  .tool .sw{width:12px;height:12px;flex:none;border-radius:2px}
+  .tool .key{margin-left:auto;font:11px var(--mono);opacity:.6}
+  #canvasWrap{position:relative;background:#121016;overflow:hidden}
+  canvas{display:block;cursor:crosshair}
+  #insp{background:var(--panel);padding:12px;overflow-y:auto}
+  #insp h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  #insp .field{margin-bottom:8px}
+  #insp label{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+  #insp input{width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);
+       color:var(--ink);padding:5px 8px;font:13px var(--mono)}
+  #insp .none{color:var(--muted);font-size:13px}
+  #insp .danger{border-color:var(--crimson);color:var(--crimson);width:100%;margin-top:8px}
+  #status{grid-column:1/4;background:var(--panel);display:flex;align-items:center;gap:18px;
+       padding:0 14px;font:12px var(--mono);color:var(--muted)}
+  dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);max-width:640px;width:90%}
+  dialog textarea{width:100%;height:300px;background:var(--panel2);color:var(--ink);
+       border:1px solid var(--line);font:12px var(--mono);box-sizing:border-box}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  .dlgrow{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Mehawar · Editor Livelli</h1>
+    <input id="lvlname" value="Nuovo Livello" aria-label="Nome livello">
+    <span class="sp"></span>
+    <button id="btnCam">Anteprima camera: OFF</button>
+    <button id="btnDemo">Carica Il Risveglio</button>
+    <button id="btnNew">Nuovo</button>
+    <button id="btnImport">Importa</button>
+    <button id="btnExport" class="primary">Esporta JSON</button>
+  </header>
+
+  <nav id="tools" aria-label="Strumenti"></nav>
+
+  <div id="canvasWrap"><canvas id="cv"></canvas></div>
+
+  <aside id="insp"><h2>Selezione</h2><div id="inspBody" class="none">Niente selezionato.<br><br>
+    <b>Mouse</b>: trascina per creare/muovere · rotella = zoom · trascina col tasto destro = pan<br><br>
+    <b>Tasti</b>: V seleziona · Canc elimina · Ctrl+Z annulla</div></aside>
+
+  <div id="status"><span id="stPos">x — · y —</span><span id="stCount"></span>
+    <span id="stSave"></span></div>
+</div>
+
+<dialog id="dlg"><h3 id="dlgTitle" style="margin-top:0"></h3>
+  <textarea id="dlgText" spellcheck="false"></textarea>
+  <div class="dlgrow"><button id="dlgAction" class="primary"></button>
+  <button id="dlgClose">Chiudi</button></div>
+</dialog>
+
+<script>
+'use strict';
+// ---------- model ----------
+// rects: {id,kind,cx,cy,w,h,name}  markers: {id,kind,x,y,note}  zones: {id,kind:'zona',from,to,label}
+const RECTS = {
+  terra:       {label:'Terreno',      color:'#8c8496', key:'T'},
+  piattaforma: {label:'Piattaforma',  color:'#a9a2b4', key:'P'},
+  muro:        {label:'Muro',         color:'#6b6377', key:'M'},
+  gate:        {label:'Gate',         color:'#3fb8a8', key:'G'},
+  killzone:    {label:'KillZone',     color:'#c05248', key:'K'},
+  goal:        {label:'Goal',         color:'#c9a45a', key:'O'},
+  zona:        {label:'Zona (fascia)',color:'#3fb8a8', key:'Z'},
+};
+const MARKERS = {
+  spawn:  {label:'Spawn Lucius', color:'#c05248', shape:'circle'},
+  fante:  {label:'Fante',        color:'#d98a4a', shape:'circle'},
+  dummy:  {label:'Dummy',        color:'#d9d2c4', shape:'square'},
+  boss:   {label:'Boss',         color:'#9a6ab0', shape:'square'},
+  torcia: {label:'Torcia ⑷',     color:'#3fb8a8', shape:'diamond'},
+  braciere:{label:'Braciere ⑸',  color:'#3fb8a8', shape:'diamond'},
+  stendardo:{label:'Stendardo ⑹',color:'#a89d8e', shape:'diamond'},
+  urna:   {label:'Urna ⑺',       color:'#a89d8e', shape:'diamond'},
+  colonna:{label:'Colonna ⑶',    color:'#a89d8e', shape:'diamond'},
+  macerie:{label:'Macerie ⑾',    color:'#a89d8e', shape:'diamond'},
+  porta:  {label:'Porta ⑻',      color:'#c9a45a', shape:'diamond'},
+  lamassu:{label:'Lamassu ⑼',    color:'#c9a45a', shape:'diamond'},
+};
+let model = { name:'Nuovo Livello', elements: [] };
+let nextId = 1;
+const el = id => model.elements.find(e => e.id === id);
+
+// ---------- demo: Il Risveglio (real coords from GreyboxBootstrap) ----------
+function demoRisveglio(){
+  nextId = 1;
+  const E = [];
+  const R = (kind,cx,cy,w,h,name)=>E.push({id:nextId++,kind,cx,cy,w,h,name});
+  const M = (kind,x,y,note)=>E.push({id:nextId++,kind,x,y,note:note||''});
+  R('muro',-0.5,1.5,1,8,'Wall.Left');
+  R('terra',19,-4.5,38,4,'Floor.Z1');
+  R('terra',22,-1.75,8,1.5,'Z1.Step');
+  R('terra',40.5,-6,5,1,'Z2.PitFloor');
+  R('terra',98.5,-4.5,111,4,'Floor.Z2toEnd');
+  R('piattaforma',50,-0.75,4,0.5,'Z2.PlatA');
+  R('piattaforma',57,0.75,4,0.5,'Z2.PlatB');
+  R('gate',73,1.5,2,8,'Z3.Gate');
+  R('goal',150,-1,2,3,'Goal');
+  R('muro',154.5,1.5,1,8,'Wall.Right');
+  E.push({id:nextId++,kind:'zona',from:0,to:34,label:'Z1 · camminata'});
+  E.push({id:nextId++,kind:'zona',from:34,to:60,label:'Z2 · salti + fossa'});
+  E.push({id:nextId++,kind:'zona',from:60,to:76,label:'Z3 · varco'});
+  E.push({id:nextId++,kind:'zona',from:76,to:96,label:'Z4 · arena'});
+  E.push({id:nextId++,kind:'zona',from:96,to:126,label:'Finale'});
+  E.push({id:nextId++,kind:'zona',from:130,to:152,label:'Boss · Gaull'});
+  M('spawn',2,-1.5);
+  M('dummy',69,-1.9,'apre il gate');
+  M('fante',84,-1.75); M('fante',106,-1.75); M('fante',112,-1.75);
+  M('boss',143,-1.25,'Gaull · arena 130-152');
+  model = { name:'Il Risveglio', elements:E };
+  document.getElementById('lvlname').value = model.name;
+  sel = null; pushUndo(); save(); draw(); refreshInsp();
+}
+
+// ---------- view state ----------
+const cv = document.getElementById('cv'), wrap = document.getElementById('canvasWrap');
+const ctx = cv.getContext('2d');
+let scale = 9, panX = 40, panY = 260;   // px per unit; screen origin of world (0,0)
+const SNAP = 0.5;
+const wx = sx => (sx - panX) / scale, wy = sy => (panY - sy) / scale;
+const sx = x => panX + x * scale,     sy = y => panY - y * scale;
+const snap = v => Math.round(v / SNAP) * SNAP;
+
+function resize(){
+  const r = wrap.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+new ResizeObserver(resize).observe(wrap);
+
+// ---------- drawing ----------
+let sel = null, tool = 'select', camPreview = false, mouse = {x:0, y:0};
+function draw(){
+  const W = cv.clientWidth, H = cv.clientHeight;
+  ctx.clearRect(0, 0, W, H);
+  // grid
+  const x0 = Math.floor(wx(0)), x1 = Math.ceil(wx(W)), y0 = Math.floor(wy(H)), y1 = Math.ceil(wy(0));
+  ctx.lineWidth = 1;
+  for (let x = x0; x <= x1; x++){
+    ctx.strokeStyle = x % 10 === 0 ? '#2c2537' : '#1d1926';
+    ctx.beginPath(); ctx.moveTo(sx(x), 0); ctx.lineTo(sx(x), H); ctx.stroke();
+  }
+  for (let y = y0; y <= y1; y++){
+    ctx.strokeStyle = y % 5 === 0 ? '#2c2537' : '#1d1926';
+    ctx.beginPath(); ctx.moveTo(0, sy(y)); ctx.lineTo(W, sy(y)); ctx.stroke();
+  }
+  // ground reference y=-2.5
+  ctx.strokeStyle = '#3fb8a866'; ctx.setLineDash([6, 5]);
+  ctx.beginPath(); ctx.moveTo(0, sy(-2.5)); ctx.lineTo(W, sy(-2.5)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#3fb8a8aa'; ctx.font = '11px ' + 'Menlo,monospace';
+  ctx.fillText('linea di terra y = -2.5', 8, sy(-2.5) - 5);
+
+  // zones
+  for (const e of model.elements) if (e.kind === 'zona'){
+    ctx.fillStyle = sel === e.id ? '#3fb8a855' : '#3fb8a822';
+    ctx.fillRect(sx(e.from), 0, (e.to - e.from) * scale, 22);
+    ctx.fillStyle = '#e8e0d2';
+    ctx.font = '600 12px -apple-system,sans-serif';
+    ctx.fillText(e.label, sx(e.from) + 6, 15);
+  }
+  // rects
+  for (const e of model.elements){
+    if (!(e.kind in RECTS) || e.kind === 'zona') continue;
+    const X = sx(e.cx - e.w / 2), Y = sy(e.cy + e.h / 2), Wd = e.w * scale, Ht = e.h * scale;
+    if (e.kind === 'killzone'){
+      ctx.fillStyle = '#c0524833'; ctx.fillRect(X, Y, Wd, Ht);
+      ctx.strokeStyle = '#c05248'; ctx.setLineDash([4, 3]); ctx.strokeRect(X, Y, Wd, Ht); ctx.setLineDash([]);
+    } else {
+      ctx.fillStyle = RECTS[e.kind].color; ctx.fillRect(X, Y, Wd, Ht);
+    }
+    if (sel === e.id){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(X - 1, Y - 1, Wd + 2, Ht + 2); ctx.lineWidth = 1; }
+  }
+  // markers
+  ctx.font = '10px Menlo,monospace';
+  for (const e of model.elements){
+    if (!(e.kind in MARKERS)) continue;
+    const m = MARKERS[e.kind], X = sx(e.x), Y = sy(e.y), r = 6;
+    ctx.fillStyle = m.color;
+    if (m.shape === 'circle'){ ctx.beginPath(); ctx.arc(X, Y, r, 0, 7); ctx.fill(); }
+    else if (m.shape === 'square'){ ctx.fillRect(X - r, Y - r, 2 * r, 2 * r); }
+    else { ctx.save(); ctx.translate(X, Y); ctx.rotate(Math.PI / 4); ctx.fillRect(-5, -5, 10, 10); ctx.restore(); }
+    ctx.fillStyle = '#a89d8e';
+    ctx.fillText(e.kind, X - ctx.measureText(e.kind).width / 2, Y + 18);
+    if (sel === e.id){ ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(X, Y, r + 4, 0, 7); ctx.stroke(); ctx.lineWidth = 1; }
+  }
+  // drag ghost
+  if (drag && drag.mode === 'create'){
+    ctx.strokeStyle = '#3fb8a8'; ctx.setLineDash([5, 4]);
+    const a = drag, X = sx(Math.min(a.x0, a.x1)), Y = sy(Math.max(a.y0, a.y1));
+    ctx.strokeRect(X, Y, Math.abs(a.x1 - a.x0) * scale, Math.abs(a.y1 - a.y0) * scale);
+    ctx.setLineDash([]);
+  }
+  // camera preview: 20x11 view, ground line 3u from bottom, centered on mouse X
+  if (camPreview){
+    const gl = -2.5, camY = gl + 5.5 - 3;   // ground-anchored framing
+    const X = sx(mouse.x - 10), Y = sy(camY + 5.5);
+    ctx.strokeStyle = '#c9a45a'; ctx.lineWidth = 2;
+    ctx.strokeRect(X, Y, 20 * scale, 11 * scale);
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#c9a45a';
+    ctx.fillText('inquadratura 20×11 (terra a 3u dal fondo)', X + 6, Y + 14);
+  }
+}
+
+// ---------- hit test / selection ----------
+function hit(x, y){
+  const list = model.elements;
+  for (let i = list.length - 1; i >= 0; i--){   // markers drawn last -> picked first
+    const e = list[i];
+    if (e.kind in MARKERS && Math.abs(x - e.x) * scale < 9 && Math.abs(y - e.y) * scale < 9) return e;
+  }
+  for (let i = list.length - 1; i >= 0; i--){
+    const e = list[i];
+    if (e.kind in RECTS && e.kind !== 'zona' &&
+        Math.abs(x - e.cx) <= e.w / 2 && Math.abs(y - e.cy) <= e.h / 2) return e;
+  }
+  for (const e of list) if (e.kind === 'zona' && sy(y) < 22 + 0 && x >= e.from && x <= e.to) return e;
+  return null;
+}
+
+// ---------- undo / persistence ----------
+let undoStack = [];
+function pushUndo(){ undoStack.push(JSON.stringify(model)); if (undoStack.length > 60) undoStack.shift(); }
+function undo(){
+  if (undoStack.length < 2) return;
+  undoStack.pop(); model = JSON.parse(undoStack[undoStack.length - 1]);
+  sel = null; save(); draw(); refreshInsp();
+}
+function save(){
+  model.name = document.getElementById('lvlname').value;
+  localStorage.setItem('mehawar-level', JSON.stringify(model));
+  document.getElementById('stSave').textContent = 'salvato in locale';
+  document.getElementById('stCount').textContent = model.elements.length + ' elementi';
+}
+
+// ---------- toolbar ----------
+const toolsNav = document.getElementById('tools');
+function toolButton(id, label, color, key){
+  const b = document.createElement('button');
+  b.className = 'tool'; b.dataset.tool = id;
+  b.innerHTML = `<span class="sw" style="background:${color}"></span>${label}` +
+                (key ? `<span class="key">${key}</span>` : '');
+  b.onclick = () => setTool(id);
+  toolsNav.appendChild(b);
+  return b;
+}
+function section(t){ const d = document.createElement('div'); d.className = 'sec'; d.textContent = t; toolsNav.appendChild(d); }
+section('Base');
+toolButton('select', 'Seleziona', '#e8e0d2', 'V');
+section('Geometria (trascina)');
+for (const k in RECTS) toolButton(k, RECTS[k].label, RECTS[k].color, RECTS[k].key);
+section('Attori (clic)');
+for (const k of ['spawn', 'fante', 'dummy', 'boss']) toolButton(k, MARKERS[k].label, MARKERS[k].color);
+section('Props (clic) · n° = atlas');
+for (const k of ['torcia', 'braciere', 'stendardo', 'urna', 'colonna', 'macerie', 'porta', 'lamassu'])
+  toolButton(k, MARKERS[k].label, MARKERS[k].color);
+function setTool(t){
+  tool = t;
+  document.querySelectorAll('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+  cv.style.cursor = t === 'select' ? 'default' : 'crosshair';
+}
+setTool('select');
+
+// ---------- inspector ----------
+const inspBody = document.getElementById('inspBody');
+function refreshInsp(){
+  const e = sel != null ? el(sel) : null;
+  if (!e){ inspBody.className = 'none'; inspBody.innerHTML =
+    'Niente selezionato.<br><br><b>Mouse</b>: trascina per creare/muovere · rotella = zoom · tasto destro = pan<br><br><b>Tasti</b>: V seleziona · Canc elimina · Ctrl+Z annulla';
+    return; }
+  inspBody.className = '';
+  const f = [];
+  const add = (k, lab, step) => f.push(
+    `<div class="field"><label>${lab}</label><input data-k="${k}" type="${typeof e[k] === 'number' ? 'number' : 'text'}" step="${step || 0.5}" value="${e[k]}"></div>`);
+  f.push(`<div class="field"><label>tipo</label><input value="${e.kind}" disabled></div>`);
+  if (e.kind === 'zona'){ add('label', 'etichetta'); add('from', 'da (x)'); add('to', 'a (x)'); }
+  else if (e.kind in RECTS){ add('name', 'nome'); add('cx', 'centro x'); add('cy', 'centro y'); add('w', 'larghezza'); add('h', 'altezza'); }
+  else { add('x', 'x'); add('y', 'y'); add('note', 'nota'); }
+  inspBody.innerHTML = f.join('') + '<button class="danger" id="btnDel">Elimina (Canc)</button>';
+  inspBody.querySelectorAll('input[data-k]').forEach(inp => {
+    inp.onchange = () => {
+      const k = inp.dataset.k;
+      e[k] = inp.type === 'number' ? parseFloat(inp.value) || 0 : inp.value;
+      pushUndo(); save(); draw();
+    };
+  });
+  document.getElementById('btnDel').onclick = del;
+}
+function del(){
+  if (sel == null) return;
+  model.elements = model.elements.filter(e => e.id !== sel);
+  sel = null; pushUndo(); save(); draw(); refreshInsp();
+}
+
+// ---------- mouse ----------
+let drag = null;
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('mousedown', ev => {
+  const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const x = wx(mx), y = wy(my);
+  if (ev.button === 2 || ev.button === 1){ drag = {mode:'pan', mx, my, panX, panY}; return; }
+  if (tool === 'select'){
+    const h = hit(x, y);
+    sel = h ? h.id : null; refreshInsp(); draw();
+    if (h && h.kind !== 'zona')
+      drag = h.kind in MARKERS
+        ? {mode:'moveM', id:h.id, dx:h.x - x, dy:h.y - y}
+        : {mode:'moveR', id:h.id, dx:h.cx - x, dy:h.cy - y};
+    else if (h) drag = {mode:'moveZ', id:h.id, x0:x, f0:h.from, t0:h.to};
+    return;
+  }
+  if (tool in MARKERS){
+    const e = {id:nextId++, kind:tool, x:snap(x), y:snap(y), note:''};
+    model.elements.push(e); sel = e.id;
+    pushUndo(); save(); draw(); refreshInsp();
+    return;
+  }
+  drag = {mode:'create', kind:tool, x0:snap(x), y0:snap(y), x1:snap(x), y1:snap(y)};
+});
+cv.addEventListener('mousemove', ev => {
+  const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  mouse = {x: wx(mx), y: wy(my)};
+  document.getElementById('stPos').textContent =
+    'x ' + mouse.x.toFixed(1) + ' · y ' + mouse.y.toFixed(1);
+  if (!drag){ if (camPreview) draw(); return; }
+  if (drag.mode === 'pan'){ panX = drag.panX + (mx - drag.mx); panY = drag.panY + (my - drag.my); }
+  else if (drag.mode === 'create'){ drag.x1 = snap(mouse.x); drag.y1 = snap(mouse.y); }
+  else if (drag.mode === 'moveM'){ const e = el(drag.id); e.x = snap(mouse.x + drag.dx); e.y = snap(mouse.y + drag.dy); }
+  else if (drag.mode === 'moveR'){ const e = el(drag.id); e.cx = snap(mouse.x + drag.dx); e.cy = snap(mouse.y + drag.dy); }
+  else if (drag.mode === 'moveZ'){ const e = el(drag.id), d = snap(mouse.x - drag.x0); e.from = drag.f0 + d; e.to = drag.t0 + d; }
+  draw();
+});
+addEventListener('mouseup', () => {
+  if (!drag) return;
+  if (drag.mode === 'create'){
+    const w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
+    if (drag.kind === 'zona'){
+      if (w >= 1){
+        const e = {id:nextId++, kind:'zona', from:Math.min(drag.x0, drag.x1), to:Math.max(drag.x0, drag.x1), label:'Zona'};
+        model.elements.push(e); sel = e.id;
+      }
+    } else if (w >= SNAP && h >= SNAP){
+      const e = {id:nextId++, kind:drag.kind, cx:(drag.x0 + drag.x1) / 2, cy:(drag.y0 + drag.y1) / 2,
+                 w, h, name:RECTS[drag.kind].label};
+      model.elements.push(e); sel = e.id;
+    }
+    pushUndo(); save(); refreshInsp();
+  }
+  if (drag.mode === 'moveM' || drag.mode === 'moveR' || drag.mode === 'moveZ'){ pushUndo(); save(); refreshInsp(); }
+  drag = null; draw();
+});
+cv.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const before = {x: wx(mx), y: wy(my)};
+  scale = Math.min(40, Math.max(3, scale * (ev.deltaY < 0 ? 1.12 : 0.89)));
+  panX = mx - before.x * scale; panY = my + before.y * scale;
+  draw();
+}, {passive: false});
+
+// ---------- keyboard ----------
+addEventListener('keydown', ev => {
+  if (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA') return;
+  if (ev.key === 'Delete' || ev.key === 'Backspace'){ del(); return; }
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z'){ ev.preventDefault(); undo(); return; }
+  const k = ev.key.toUpperCase();
+  if (k === 'V') setTool('select');
+  for (const id in RECTS) if (RECTS[id].key === k) setTool(id);
+});
+
+// ---------- import / export ----------
+const dlg = document.getElementById('dlg');
+function openDlg(title, text, actionLabel, action){
+  document.getElementById('dlgTitle').textContent = title;
+  const ta = document.getElementById('dlgText'); ta.value = text;
+  const btn = document.getElementById('dlgAction');
+  btn.textContent = actionLabel;
+  btn.onclick = () => action(ta.value);
+  dlg.showModal();
+}
+document.getElementById('dlgClose').onclick = () => dlg.close();
+function exportJSON(){
+  model.name = document.getElementById('lvlname').value;
+  const out = {
+    format: 'mehawar-level/1',
+    name: model.name,
+    zones:  model.elements.filter(e => e.kind === 'zona').map(({label, from, to}) => ({label, from, to})),
+    solids: model.elements.filter(e => e.kind in RECTS && e.kind !== 'zona')
+              .map(({kind, name, cx, cy, w, h}) => ({kind, name, cx, cy, w, h})),
+    actors: model.elements.filter(e => ['spawn', 'fante', 'dummy', 'boss'].includes(e.kind))
+              .map(({kind, x, y, note}) => ({kind, x, y, note})),
+    props:  model.elements.filter(e => e.kind in MARKERS && !['spawn', 'fante', 'dummy', 'boss'].includes(e.kind))
+              .map(({kind, x, y, note}) => ({kind, x, y, note})),
+  };
+  openDlg('Esporta — copia e passa a Claude', JSON.stringify(out, null, 2), 'Scarica file', text => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], {type: 'application/json'}));
+    a.download = (model.name || 'livello').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.mehawar-level.json';
+    a.click();
+  });
+}
+function importJSON(){
+  openDlg('Importa — incolla un JSON esportato', '', 'Importa', text => {
+    try {
+      const d = JSON.parse(text);
+      nextId = 1;
+      const E = [];
+      (d.zones || []).forEach(z => E.push({id:nextId++, kind:'zona', from:z.from, to:z.to, label:z.label || 'Zona'}));
+      (d.solids || []).forEach(s => E.push({id:nextId++, kind:s.kind in RECTS ? s.kind : 'terra',
+        cx:s.cx, cy:s.cy, w:s.w, h:s.h, name:s.name || s.kind}));
+      [...(d.actors || []), ...(d.props || [])].forEach(m => { if (m.kind in MARKERS)
+        E.push({id:nextId++, kind:m.kind, x:m.x, y:m.y, note:m.note || ''}); });
+      model = {name: d.name || 'Importato', elements: E};
+      document.getElementById('lvlname').value = model.name;
+      sel = null; pushUndo(); save(); draw(); refreshInsp(); dlg.close();
+    } catch (err){ alert('JSON non valido: ' + err.message); }
+  });
+}
+document.getElementById('btnExport').onclick = exportJSON;
+document.getElementById('btnImport').onclick = importJSON;
+document.getElementById('btnDemo').onclick = demoRisveglio;
+document.getElementById('btnNew').onclick = () => {
+  model = {name:'Nuovo Livello', elements:[]}; nextId = 1; sel = null;
+  document.getElementById('lvlname').value = model.name;
+  pushUndo(); save(); draw(); refreshInsp();
+};
+document.getElementById('btnCam').onclick = function(){
+  camPreview = !camPreview;
+  this.textContent = 'Anteprima camera: ' + (camPreview ? 'ON' : 'OFF');
+  draw();
+};
+document.getElementById('lvlname').addEventListener('change', save);
+
+// ---------- boot ----------
+const saved = localStorage.getItem('mehawar-level');
+if (saved){
+  try {
+    model = JSON.parse(saved);
+    nextId = Math.max(0, ...model.elements.map(e => e.id)) + 1;
+    document.getElementById('lvlname').value = model.name;
+    pushUndo();
+  } catch { demoRisveglio(); }
+} else demoRisveglio();
+resize(); refreshInsp();
+</script>
