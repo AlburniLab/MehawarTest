@@ -35,6 +35,7 @@ namespace Mehawar.Greybox.EditorTools
         // sky (58.8u tall) bottoms one viewport below ground: the abyss glow (light from
         // below, Docs/31 §3) fills pits and the sub-ground band left free for future HUD.
         private const float FarYOffset = 11.25f / 2f;              // bottom at ground
+        private const float MidYOffset = 9.8125f / 2f;             // 157px band, bottom at ground
         private const float NearYOffset = 45.25f / 2f - 1f;        // bottom at ground - 1
         private const float SkyYOffset = 58.8f / 2f - 19.5f;       // bottom at ground - 19.5: the
         // glow band is ~15u tall, so this keeps the bright mint below the regular viewport
@@ -45,9 +46,9 @@ namespace Mehawar.Greybox.EditorTools
         {
             new LayerConfig { File = "r1_sky.png",  Name = "sky",  ScrollX = 0.05f, SortingOrder = -100, TileH = false, YOffset = SkyYOffset },
             new LayerConfig { File = "r1_far.png",  Name = "far",  ScrollX = 0.15f, SortingOrder = -80,  TileH = true, YOffset = FarYOffset },
-            // mid: awaiting the RGBA re-export — the current file is an opaque full scene
-            // that would occlude far/sky entirely. Imported, but kept out of the definition.
-            new LayerConfig { File = "r1_mid.png",  Name = "mid",  ScrollX = 0.35f, SortingOrder = -60,  TileH = true, InDefinition = false },
+            // mid: ruins skyline band, sky removed via scripted cutout (column skyline scan
+            // + morphological closing) from the opaque full-scene delivery.
+            new LayerConfig { File = "r1_mid.png",  Name = "mid",  ScrollX = 0.35f, SortingOrder = -60,  TileH = true, YOffset = MidYOffset },
             // near is tinted down: its pale statue masses compete in value with the greybox
             // playfield (readability gate, Docs/31 §5) — darken via tint, never regenerate.
             new LayerConfig { File = "r1_near.png", Name = "near", ScrollX = 0.60f, SortingOrder = -40,  TileH = true, Tint = new Color(0.62f, 0.62f, 0.70f), YOffset = NearYOffset },

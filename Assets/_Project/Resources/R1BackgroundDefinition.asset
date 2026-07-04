@@ -32,6 +32,15 @@ MonoBehaviour:
     tileVertically: 0
     tint: {r: 1, g: 1, b: 1, a: 1}
     yOffset: 5.625
+  - name: mid
+    sprite: {fileID: 21300000, guid: b829ab63e85d642859851608a2c83934, type: 3}
+    scrollFactorX: 0.35
+    scrollFactorY: 1
+    sortingOrder: -60
+    tileHorizontally: 1
+    tileVertically: 0
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    yOffset: 4.90625
   - name: near
     sprite: {fileID: 21300000, guid: 8d1e53f707a834dd4b2b9d242790ade3, type: 3}
     scrollFactorX: 0.6
