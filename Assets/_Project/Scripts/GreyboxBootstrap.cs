@@ -115,6 +115,7 @@ namespace Mehawar.Greybox
             _spawnedPlayer = null;
 
             GameObject player;
+            bool risveglio = false;
             if (builderId == LevelCatalog.PassoContesoBuilder)
             {
                 BuildPassoGeometry(_groundLayerId);
@@ -129,12 +130,15 @@ namespace Mehawar.Greybox
             }
             else
             {
+                risveglio = true;
                 BuildRisveglioGeometry(_groundLayerId);
                 player = SpawnPlayer(_groundLayerId, _hittableLayerId, _playerLayerId);
                 SpawnRisveglioActors(_hittableLayerId, _playerLayerId);
             }
 
             SetupCamera(player.transform);
+            if (risveglio)
+                SpawnBackground();
             SpawnDebugHud(player);
 
             if (_goalTrigger != null)
@@ -143,6 +147,33 @@ namespace Mehawar.Greybox
             _levelRoot = null;
             _spawnedPlayer = null;
             return root;
+        }
+
+        // Background rig anchor: mid of Il Risveglio (walls at x -0.5 and 154.5). With the
+        // anchor centered, no layer's tile seam ever drifts into view across the level.
+        private const float BackgroundAnchorX = 77f;
+
+        /// <summary>R1 Babilonia parallax backdrop (Docs/31 §3/§6): layers built from the
+        /// definition asset. The rig anchor sits on the ground line at the level's center:
+        /// layer yOffsets are authored against it, and the centered X keeps every tile
+        /// seam off-screen. Rendering only — no collision, no geometry.</summary>
+        private void SpawnBackground()
+        {
+            var def = Resources.Load<BackgroundDefinition>("R1BackgroundDefinition");
+            if (def == null)
+            {
+                Debug.LogWarning("[GreyboxBootstrap] R1BackgroundDefinition missing — greybox runs bare.");
+                return;
+            }
+
+            Camera? cam = Camera.main;
+            if (cam == null)
+                return;
+
+            var go = new GameObject("Background");
+            go.transform.SetParent(_levelRoot, false);
+            go.transform.position = new Vector3(BackgroundAnchorX, GroundTopY, 0f);
+            go.AddComponent<ParallaxBackground>().Initialize(def, cam);
         }
 
         private void SpawnDebugHud(GameObject player)

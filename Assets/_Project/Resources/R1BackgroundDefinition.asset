@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b856dea08988f47acb059774906c1085, type: 3}
+  m_Name: R1BackgroundDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::Mehawar.Greybox.BackgroundDefinition
+  skyClear: {r: 0.16, g: 0.17, b: 0.2, a: 1}
+  layers:
+  - name: sky
+    sprite: {fileID: 21300000, guid: 1b133a829fcb4411caa9519b0413054e, type: 3}
+    scrollFactorX: 0.05
+    scrollFactorY: 1
+    sortingOrder: -100
+    tileHorizontally: 0
+    tileVertically: 0
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    yOffset: 9.9
+  - name: far
+    sprite: {fileID: 21300000, guid: 985663500542e472c945138f27ea3266, type: 3}
+    scrollFactorX: 0.15
+    scrollFactorY: 1
+    sortingOrder: -80
+    tileHorizontally: 1
+    tileVertically: 0
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    yOffset: 5.625
+  - name: near
+    sprite: {fileID: 21300000, guid: 8d1e53f707a834dd4b2b9d242790ade3, type: 3}
+    scrollFactorX: 0.6
+    scrollFactorY: 1
+    sortingOrder: -40
+    tileHorizontally: 1
+    tileVertically: 0
+    tint: {r: 0.62, g: 0.62, b: 0.7, a: 1}
+    yOffset: 21.625
