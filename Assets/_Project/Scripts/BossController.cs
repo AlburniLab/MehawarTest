@@ -100,13 +100,16 @@ namespace Mehawar.Greybox
         /// <summary>Italian name of the attack being telegraphed (tutorial-grade readability).</summary>
         public string CurrentAttackLabel => _attack != null ? _attack.Label : "";
 
-        /// <summary>Inject the boss data and arena bounds (called by the level builder).</summary>
-        public void Configure(BossDefinition def, LayerMask playerMask, float arenaMinX, float arenaMaxX)
+        /// <summary>Inject the boss data, arena bounds and player (called by the level builder).</summary>
+        public void Configure(BossDefinition def, LayerMask playerMask, float arenaMinX, float arenaMaxX,
+            PlayerMovement player)
         {
             _def = def;
             _playerMask = playerMask;
             _arenaMinX = arenaMinX;
             _arenaMaxX = arenaMaxX;
+            _player = player.transform;
+            _playerHealth = player.GetComponent<PlayerHealth>();
             SetMaxHealth(def.MaxHealth);
 
             // Per-boss slash hitbox (Awake already built the child collider).
@@ -118,33 +121,9 @@ namespace Mehawar.Greybox
             }
         }
 
-        /// <summary>Lazily resolved (and re-resolved after rebuilds): spawn order never matters.</summary>
-        private Transform? Player
-        {
-            get
-            {
-                if (_player == null)
-                    ResolvePlayer();
-                return _player;
-            }
-        }
+        private Transform? Player => _player;
 
-        private PlayerHealth? PlayerHp
-        {
-            get
-            {
-                if (_playerHealth == null)
-                    ResolvePlayer();
-                return _playerHealth;
-            }
-        }
-
-        private void ResolvePlayer()
-        {
-            var pm = FindFirstObjectByType<PlayerMovement>();
-            _player = pm != null ? pm.transform : null;
-            _playerHealth = pm != null ? pm.GetComponent<PlayerHealth>() : null;
-        }
+        private PlayerHealth? PlayerHp => _playerHealth;
 
         protected override void Awake()
         {

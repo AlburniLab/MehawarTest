@@ -151,19 +151,10 @@ namespace Mehawar.Greybox
         public float ParryFlashDuration => parryFlashDuration;
 
 
-        /// <summary>Lazily resolved (and re-resolved after scene rebuilds): spawn order never matters.</summary>
-        private Transform? Player
-        {
-            get
-            {
-                if (_player == null)
-                {
-                    var pm = FindFirstObjectByType<PlayerMovement>();
-                    _player = pm != null ? pm.transform : null;
-                }
-                return _player;
-            }
-        }
+        /// <summary>Injected by the level builder at spawn (the player is always built first).</summary>
+        public void SetPlayer(PlayerMovement player) => _player = player.transform;
+
+        private Transform? Player => _player;
 
         protected override void Awake()
         {

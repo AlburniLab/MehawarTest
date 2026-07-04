@@ -70,6 +70,8 @@ namespace Mehawar.Greybox
         private GameObject? _goal;
         private GoalTrigger? _goalTrigger;
         private Transform? _levelRoot;
+        private PlayerMovement? _spawnedPlayer;   // build-scoped, set by SpawnPlayer (like _levelRoot)
+        private CinemachineCamera? _vcam;         // resolved once (scene-authored or created), then reused
         private int _groundLayerId = -1;
         private int _hittableLayerId = -1;
         private int _playerLayerId = -1;
@@ -110,6 +112,7 @@ namespace Mehawar.Greybox
             _gateWall = null;
             _goal = null;
             _goalTrigger = null;
+            _spawnedPlayer = null;
 
             GameObject player;
             if (builderId == LevelCatalog.PassoContesoBuilder)
@@ -138,6 +141,7 @@ namespace Mehawar.Greybox
                 _goalTrigger.Reached += onGoalReached;
 
             _levelRoot = null;
+            _spawnedPlayer = null;
             return root;
         }
 
@@ -403,7 +407,8 @@ namespace Mehawar.Greybox
             bossGo.AddComponent<Rigidbody2D>();                 // configured by TrainingDummy.Awake
 
             var boss = bossGo.AddComponent<BossController>();
-            boss.Configure(def, 1 << playerLayer, arenaMinX, arenaMaxX);
+            boss.Configure(def, 1 << playerLayer, arenaMinX, arenaMaxX,
+                _spawnedPlayer!);   // BuildLevel always spawns the player before actors
             boss.BossDefeated += ActivateGoal;
 
             var anim = bossGo.AddComponent<SpriteAnimator>();
@@ -459,7 +464,8 @@ namespace Mehawar.Greybox
             sensor.GroundMask = 1 << groundLayer;        // dedicated Ground layer only
 
             player.AddComponent<PlayerInputHub>();        // single PlayerControls owner
-            player.AddComponent<PlayerMovement>();        // self-wires rb + sensor + input hub in Awake
+            _spawnedPlayer =
+                player.AddComponent<PlayerMovement>();    // self-wires rb + sensor + input hub in Awake
 
             // Avatar = configuration: signature resource + melee profile (never a code fork).
             bool oscura = GameState.Campaign == Campaign.ViaOscura;
@@ -526,6 +532,7 @@ namespace Mehawar.Greybox
             var fante = CreateActor("EnemyFante", x, floorTopY, fanteColor, hittableLayer);
             var brain = fante.AddComponent<EnemyFante>();
             brain.PlayerMask = 1 << playerLayer;
+            brain.SetPlayer(_spawnedPlayer!);   // BuildLevel always spawns the player before actors
             brain.Respawns = false;   // level mode: a kill is progress, not a 1.5s pause
 
             var anim = fante.AddComponent<SpriteAnimator>();
@@ -571,7 +578,11 @@ namespace Mehawar.Greybox
 
             // (2) Follow only X/Y. PositionComposer places the camera at target - forward * CameraDistance;
             // with forward = +Z and target.z = 0, the camera Z stays locked at -CameraDistance (= cameraZ).
-            var vcam = FindFirstObjectByType<CinemachineCamera>();
+            // Cached across rebuilds; first resolve finds the scene-authored vcam (Greybox.unity).
+            // One-shot lookup: there is a single vcam, so instance ordering is irrelevant.
+            CinemachineCamera? vcam = _vcam;
+            if (vcam == null)
+                vcam = FindAnyObjectByType<CinemachineCamera>();
             if (vcam == null)
             {
                 var vcamGo = new GameObject("CM vcam1");
@@ -579,6 +590,7 @@ namespace Mehawar.Greybox
                 vcamGo.transform.position = new Vector3(target.position.x, target.position.y, cameraZ);
                 vcam = vcamGo.AddComponent<CinemachineCamera>();
             }
+            _vcam = vcam;
 
             var composer = vcam.GetComponent<CinemachinePositionComposer>();
             if (composer == null)
