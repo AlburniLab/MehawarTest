@@ -71,7 +71,11 @@ namespace Mehawar.Greybox
         private GoalTrigger? _goalTrigger;
         private Transform? _levelRoot;
         private PlayerMovement? _spawnedPlayer;   // build-scoped, set by SpawnPlayer (like _levelRoot)
+        private TerrainSkinDefinition? _terrainSkin;   // build-scoped: set only for skinned regions
         private CinemachineCamera? _vcam;         // resolved once (scene-authored or created), then reused
+
+        // Cap strip art height in world units (32px @ PPU 16); thin platforms crop it.
+        private const float SkinCapHeight = 2f;
         private int _groundLayerId = -1;
         private int _hittableLayerId = -1;
         private int _playerLayerId = -1;
@@ -131,6 +135,8 @@ namespace Mehawar.Greybox
             else
             {
                 risveglio = true;
+                // R1 skin dresses the solids as they are built (null = plain greybox).
+                _terrainSkin = Resources.Load<TerrainSkinDefinition>("R1TerrainSkin");
                 BuildRisveglioGeometry(_groundLayerId);
                 player = SpawnPlayer(_groundLayerId, _hittableLayerId, _playerLayerId);
                 SpawnRisveglioActors(_hittableLayerId, _playerLayerId);
@@ -146,6 +152,7 @@ namespace Mehawar.Greybox
 
             _levelRoot = null;
             _spawnedPlayer = null;
+            _terrainSkin = null;
             return root;
         }
 
@@ -472,7 +479,43 @@ namespace Mehawar.Greybox
             sr.color = GroundColor;
 
             go.AddComponent<BoxCollider2D>(); // 1x1 local, scaled to world size
+
+            if (_terrainSkin != null && layer == _groundLayerId)
+                ApplyTerrainSkin(go, size);
             return go;
+        }
+
+        /// <summary>Dress a solid with the region's terrain skin (rendering only, collider
+        /// untouched): walkable cap strip on top, darker fill below. Sprites use a
+        /// top-center pivot, so each tiled strip hangs down from the solid's top edge.</summary>
+        private void ApplyTerrainSkin(GameObject solid, Vector2 size)
+        {
+            Sprite? cap = _terrainSkin!.cap;
+            if (cap == null)
+                return;
+
+            solid.GetComponent<SpriteRenderer>().enabled = false;   // slab off, collider stays
+            GameObject holder = HitboxFactory.CreateCounterScaledChild(solid.transform, "Skin");
+            holder.transform.localPosition = new Vector3(0f, 0.5f, 0f);   // solid's top edge
+
+            float capH = Mathf.Min(SkinCapHeight, size.y);
+            AddTiledStrip(holder.transform, "Cap", cap, new Vector2(size.x, capH), 0f, 1);
+            if (size.y > capH && _terrainSkin.fill != null)
+                AddTiledStrip(holder.transform, "Fill", _terrainSkin.fill,
+                    new Vector2(size.x, size.y - capH), -capH, 0);
+        }
+
+        private static void AddTiledStrip(
+            Transform parent, string name, Sprite sprite, Vector2 size, float topY, int order)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(0f, topY, 0f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.size = size;
+            sr.sortingOrder = order;
         }
 
         private GameObject SpawnPlayer(int groundLayer, int hittableLayer, int playerLayer)

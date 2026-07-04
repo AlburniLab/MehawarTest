@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54f4263ebaf70450887ec5a218e1ec07, type: 3}
+  m_Name: R1TerrainSkin
+  m_EditorClassIdentifier: Assembly-CSharp::Mehawar.Greybox.TerrainSkinDefinition
+  cap: {fileID: 21300000, guid: 7792b6773439f4ca7b0c4234aee49210, type: 3}
+  fill: {fileID: 21300000, guid: bfc863892cc89402584ec9ebff921700, type: 3}

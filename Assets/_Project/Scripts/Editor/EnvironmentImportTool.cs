@@ -15,6 +15,7 @@ namespace Mehawar.Greybox.EditorTools
     {
         private const string ArtFolder = "Assets/_Project/Art/Environments/R1_Babilonia";
         private const string DefAssetPath = "Assets/_Project/Resources/R1BackgroundDefinition.asset";
+        private const string SkinAssetPath = "Assets/_Project/Resources/R1TerrainSkin.asset";
         private const float PixelsPerUnit = 16f;   // project convention (Docs/31 §1)
 
         private sealed class LayerConfig
@@ -59,10 +60,13 @@ namespace Mehawar.Greybox.EditorTools
         {
             foreach (LayerConfig cfg in Layers)
                 ImportTexture($"{ArtFolder}/{cfg.File}", cfg.TileH);
+            ImportTerrainTile($"{ArtFolder}/r1_tile_cap.png");
+            ImportTerrainTile($"{ArtFolder}/r1_tile_fill.png");
             AssetDatabase.Refresh();
 
             BuildDefinition();
-            Debug.Log("[EnvironmentImportTool] Import + R1 BackgroundDefinition build complete.");
+            BuildTerrainSkin();
+            Debug.Log("[EnvironmentImportTool] Import + R1 background/terrain-skin build complete.");
         }
 
         private static void ImportTexture(string path, bool tileH)
@@ -85,6 +89,57 @@ namespace Mehawar.Greybox.EditorTools
             importer.wrapMode = tileH ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
             importer.maxTextureSize = 4096;
             importer.SaveAndReimport();
+        }
+
+        /// <summary>Playfield tiles: crisp Point (they ARE the pixel grid), Repeat wrap and
+        /// FullRect mesh for SpriteRenderer Tiled mode, top-center pivot so a tiled strip
+        /// anchors at the walkable edge and crops from the bottom on thin platforms.</summary>
+        private static void ImportTerrainTile(string path)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                Debug.LogError($"[EnvironmentImportTool] Missing texture at {path}");
+                return;
+            }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.mipmapEnabled = false;
+            importer.wrapMode = TextureWrapMode.Repeat;
+            importer.maxTextureSize = 4096;
+
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            settings.spriteAlignment = (int)SpriteAlignment.TopCenter;
+            importer.SetTextureSettings(settings);
+            importer.SaveAndReimport();
+        }
+
+        private static void BuildTerrainSkin()
+        {
+            var cap = AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtFolder}/r1_tile_cap.png");
+            var fill = AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtFolder}/r1_tile_fill.png");
+            if (cap == null || fill == null)
+            {
+                Debug.LogError("[EnvironmentImportTool] Terrain tiles missing — skin asset not built.");
+                return;
+            }
+
+            var skin = AssetDatabase.LoadAssetAtPath<TerrainSkinDefinition>(SkinAssetPath);
+            bool created = skin == null;
+            if (created)
+                skin = ScriptableObject.CreateInstance<TerrainSkinDefinition>();
+            skin!.cap = cap;
+            skin.fill = fill;
+            if (created)
+                AssetDatabase.CreateAsset(skin, SkinAssetPath);
+            EditorUtility.SetDirty(skin);
+            AssetDatabase.SaveAssets();
         }
 
         private static void BuildDefinition()
