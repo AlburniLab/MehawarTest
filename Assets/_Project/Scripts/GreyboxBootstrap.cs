@@ -679,7 +679,14 @@ namespace Mehawar.Greybox
             lens.OrthographicSize = orthoSize;
             vcam.Lens = lens;
 
-            vcam.Follow = target;   // track the player on X/Y
+            // (4) Ground-anchored framing (PO decision): the vcam follows a rig that keeps
+            // the current floor line near the bottom of the frame instead of the player
+            // centered — jumps never scroll, pits dip just enough to keep him visible.
+            var rigGo = new GameObject("CameraTarget");
+            rigGo.transform.SetParent(_levelRoot, false);
+            rigGo.AddComponent<GroundAnchoredCameraTarget>()
+                .Initialize(_spawnedPlayer!, orthoSize);   // player always exists here
+            vcam.Follow = rigGo.transform;
         }
 
         private static Sprite CreateUnitSprite()
