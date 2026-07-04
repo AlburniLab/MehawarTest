@@ -28,6 +28,7 @@ namespace Mehawar.Greybox.EditorTools
             public bool InDefinition = true;   // imported but excluded from the definition
             public Color Tint = Color.white;
             public float YOffset;              // sprite center relative to the rig anchor (ground line)
+            public float Ppu = PixelsPerUnit;  // per-layer density: higher = smaller/sharper on screen
         }
 
         // Vertical placement (rig anchor sits ON the ground line, GroundTopY):
@@ -37,7 +38,10 @@ namespace Mehawar.Greybox.EditorTools
         // below, Docs/31 §3) fills pits and the sub-ground band left free for future HUD.
         private const float FarYOffset = 11.25f / 2f;              // bottom at ground
         private const float MidYOffset = 9.8125f / 2f;             // 157px band, bottom at ground
-        private const float NearYOffset = 45.25f / 2f - 1f;        // bottom at ground - 1
+        // near v2: 3072x320 @ PPU 48 -> 64 x 6.67u. Mock-sized towers (~2x magnification on a
+        // 1080p view instead of 6x = sharp), bottom hugs the ground line.
+        private const float NearPpu = 48f;
+        private const float NearYOffset = (320f / NearPpu) / 2f - 0.5f;
         private const float SkyYOffset = 58.8f / 2f - 19.5f;       // bottom at ground - 19.5: the
         // glow band is ~15u tall, so this keeps the bright mint below the regular viewport
         // (dark-teal mid at play height) and lets it bleed in only at the bottom of pits
@@ -45,23 +49,26 @@ namespace Mehawar.Greybox.EditorTools
         // Docs/31 §3 layer table (sky/far/mid/near; the 16px tileset atlas is a later axis).
         private static readonly LayerConfig[] Layers =
         {
-            new LayerConfig { File = "r1_sky.png",  Name = "sky",  ScrollX = 0.05f, SortingOrder = -100, TileH = false, YOffset = SkyYOffset },
+            // sky: RETIRED (PO 2026-07-04) — the abyss glow read as a bare teal slab in pits.
+            // Pits now fall into the dark clear color (skyClear); far/mid carry their own skies.
+            new LayerConfig { File = "r1_sky.png",  Name = "sky",  ScrollX = 0.05f, SortingOrder = -100, TileH = false, YOffset = SkyYOffset, InDefinition = false },
             new LayerConfig { File = "r1_far.png",  Name = "far",  ScrollX = 0.15f, SortingOrder = -80,  TileH = true, YOffset = FarYOffset },
             // mid: ruins skyline band, sky removed via scripted cutout (column skyline scan
             // + morphological closing) from the opaque full-scene delivery.
             new LayerConfig { File = "r1_mid.png",  Name = "mid",  ScrollX = 0.35f, SortingOrder = -60,  TileH = true, YOffset = MidYOffset },
-            // near is tinted down: its pale statue masses compete in value with the greybox
-            // playfield (readability gate, Docs/31 §5) — darken via tint, never regenerate.
-            new LayerConfig { File = "r1_near.png", Name = "near", ScrollX = 0.60f, SortingOrder = -40,  TileH = true, Tint = new Color(0.62f, 0.62f, 0.70f), YOffset = NearYOffset },
+            // near v2 (PO hand-cut alpha, 2026-07-04): already dark and atmospheric — no tint.
+            // scrollX 0.75: with the 64u width and the level-center anchor the strip never
+            // runs out (needed span ~57u), so its tree-capped edges never show a seam.
+            new LayerConfig { File = "r1_near.png", Name = "near", ScrollX = 0.75f, SortingOrder = -40,  TileH = false, YOffset = NearYOffset, Ppu = NearPpu },
         };
 
         [MenuItem("Mehawar/Import R1 Environment (Docs 31)")]
         public static void ImportAll()
         {
             foreach (LayerConfig cfg in Layers)
-                ImportTexture($"{ArtFolder}/{cfg.File}", cfg.TileH);
-            ImportTerrainTile($"{ArtFolder}/r1_tile_cap.png");
-            ImportTerrainTile($"{ArtFolder}/r1_tile_fill.png");
+                ImportTexture($"{ArtFolder}/{cfg.File}", cfg.TileH, cfg.Ppu);
+            ImportTerrainTile($"{ArtFolder}/r1_tile_cap.png", TilePpu);
+            ImportTerrainTile($"{ArtFolder}/r1_tile_fill.png", TilePpu);
             AssetDatabase.Refresh();
 
             BuildDefinition();
@@ -69,7 +76,7 @@ namespace Mehawar.Greybox.EditorTools
             Debug.Log("[EnvironmentImportTool] Import + R1 background/terrain-skin build complete.");
         }
 
-        private static void ImportTexture(string path, bool tileH)
+        private static void ImportTexture(string path, bool tileH, float ppu)
         {
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
             if (importer == null)
@@ -80,7 +87,7 @@ namespace Mehawar.Greybox.EditorTools
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.spritePixelsPerUnit = ppu;
             // Painterly backdrops magnified ~6x on a 1080p view: Point renders them as
             // blocky grain — Bilinear keeps them soft. Characters/tiles stay Point.
             importer.filterMode = FilterMode.Bilinear;
@@ -94,7 +101,11 @@ namespace Mehawar.Greybox.EditorTools
         /// <summary>Playfield tiles: crisp Point (they ARE the pixel grid), Repeat wrap and
         /// FullRect mesh for SpriteRenderer Tiled mode, top-center pivot so a tiled strip
         /// anchors at the walkable edge and crops from the bottom on thin platforms.</summary>
-        private static void ImportTerrainTile(string path)
+        // Terrain tiles at double density: 3x screen magnification on 1080p instead of the
+        // "ridiculous" 6x (PO 2026-07-04). The real fix stays hi-res tile art.
+        private const float TilePpu = 32f;
+
+        private static void ImportTerrainTile(string path, float ppu)
         {
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
             if (importer == null)
@@ -105,7 +116,7 @@ namespace Mehawar.Greybox.EditorTools
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.spritePixelsPerUnit = ppu;
             importer.filterMode = FilterMode.Point;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.mipmapEnabled = false;
@@ -174,6 +185,8 @@ namespace Mehawar.Greybox.EditorTools
             if (created)
                 def = ScriptableObject.CreateInstance<BackgroundDefinition>();
             def!.layers = layerDefs.ToArray();
+            // Deep dark behind everything (pits, level edges) — the retired sky layer's job.
+            def.skyClear = new Color(0.045f, 0.05f, 0.075f);
             if (created)
                 AssetDatabase.CreateAsset(def, DefAssetPath);
             EditorUtility.SetDirty(def);

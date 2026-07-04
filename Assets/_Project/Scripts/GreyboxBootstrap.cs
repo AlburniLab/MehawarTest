@@ -74,8 +74,7 @@ namespace Mehawar.Greybox
         private TerrainSkinDefinition? _terrainSkin;   // build-scoped: set only for skinned regions
         private CinemachineCamera? _vcam;         // resolved once (scene-authored or created), then reused
 
-        // Cap strip art height in world units (32px @ PPU 16); thin platforms crop it.
-        private const float SkinCapHeight = 2f;
+        // NOTE: the cap strip height is read from the sprite itself (PPU-agnostic).
         private int _groundLayerId = -1;
         private int _hittableLayerId = -1;
         private int _playerLayerId = -1;
@@ -181,6 +180,7 @@ namespace Mehawar.Greybox
             go.transform.SetParent(_levelRoot, false);
             go.transform.position = new Vector3(BackgroundAnchorX, GroundTopY, 0f);
             go.AddComponent<ParallaxBackground>().Initialize(def, cam);
+            cam.backgroundColor = def.skyClear;   // what pits and level edges fall into
         }
 
         private void SpawnDebugHud(GameObject player)
@@ -494,11 +494,16 @@ namespace Mehawar.Greybox
             if (cap == null)
                 return;
 
+            // Vertical solids (walls, gate): the cap strip sliced 1u wide reads as a banded
+            // totem — keep the honest greybox slab until a real wall texture exists.
+            if (size.y > size.x)
+                return;
+
             solid.GetComponent<SpriteRenderer>().enabled = false;   // slab off, collider stays
             GameObject holder = HitboxFactory.CreateCounterScaledChild(solid.transform, "Skin");
             holder.transform.localPosition = new Vector3(0f, 0.5f, 0f);   // solid's top edge
 
-            float capH = Mathf.Min(SkinCapHeight, size.y);
+            float capH = Mathf.Min(cap.bounds.size.y, size.y);
             AddTiledStrip(holder.transform, "Cap", cap, new Vector2(size.x, capH), 0f, 1);
             if (size.y > capH && _terrainSkin.fill != null)
                 AddTiledStrip(holder.transform, "Fill", _terrainSkin.fill,
