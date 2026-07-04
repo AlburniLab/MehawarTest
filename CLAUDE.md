@@ -123,6 +123,15 @@ segnalali con suggerimenti migliorativi.
   (Esc/Start: Riprendi / Abbandona livello, coordinata con Hitstop); codice morto
   GroundSensor rimosso. **Residuo motivato**: HUD debug in IMGUI — by design fino
   alla UI definitiva (non è debito, è scaffolding dichiarato).
+- **Micro-debito `FindFirstObjectByType`: CHIUSO (2026-07-04).** Player iniettato dal
+  builder allo spawn (`EnemyFante.SetPlayer`, `BossController.Configure(...player)` via
+  `_spawnedPlayer` build-scoped); vcam risolta one-shot con `FindAnyObjectByType` al
+  primo build e cachata in `_vcam`. Zero Find nei percorsi per-frame, warning CS0618
+  azzerati.
+- **Nota TD**: `CM vcam1` è serializzato in `Greybox.unity` come root, istanza unica
+  (nella scena reale ci sono anche `Main Camera` e `Bootstrap`, non "solo Bootstrap");
+  deviazione nota dal principio "tutto da codice", da valutare per costruzione a
+  runtime quando si toccherà la camera.
 - **Livello 2 "Il Passo Conteso" costruito e validato** (pilota dual-moveset, R4):
   corridoio-strozzatura, cenge letali con KillZone, traversata anti-Bloodlust, arena
   a doppio fronte. `LevelCatalog` gestisce le sequenze per campagna ("Prosegui" a fine
