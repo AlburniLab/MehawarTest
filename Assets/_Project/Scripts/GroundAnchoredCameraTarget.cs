@@ -14,10 +14,19 @@ namespace Mehawar.Greybox
     public sealed class GroundAnchoredCameraTarget : MonoBehaviour
     {
         [Header("Framing — world units")]
-        [Tooltip("Gap between the floor line and the bottom edge of the viewport.")]
-        [SerializeField] private float groundMargin = 0.5f;
+        [Tooltip("Gap between the floor line and the bottom edge of the viewport. 3u on an " +
+                 "11u-tall view puts the player's feet in the lower third (~27%): solid " +
+                 "ground band below, the world above.")]
+        [SerializeField] private float groundMargin = 3f;
         [Tooltip("Min space kept under the player's feet when below the floor line (pits).")]
         [SerializeField] private float pitVisibilityMargin = 0.5f;
+
+        /// <summary>Exposed so a level builder can tune the composition per level.</summary>
+        public float GroundMargin
+        {
+            get => groundMargin;
+            set => groundMargin = value;
+        }
 
         private Transform? _player;
         private GroundSensor? _sensor;
